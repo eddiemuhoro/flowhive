@@ -34,6 +34,17 @@ class WorkspaceMemberResponse(BaseModel):
         from_attributes = True
 
 
+class WorkspaceProjectResponse(BaseModel):
+    id: int
+    name: str
+    description: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class WorkspaceResponse(WorkspaceBase):
     id: int
     owner_id: int
@@ -46,6 +57,7 @@ class WorkspaceResponse(WorkspaceBase):
 
 class WorkspaceDetailResponse(WorkspaceResponse):
     members: List[WorkspaceMemberResponse] = []
+    # projects: List[WorkspaceProjectResponse] = []
 
     class Config:
         from_attributes = True

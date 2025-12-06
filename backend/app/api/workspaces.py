@@ -83,7 +83,46 @@ async def get_workspace(
             detail="Not a member of this workspace"
         )
 
-    return workspace
+    # Format members with user data
+    members_data = []
+    for member in workspace.members:
+        members_data.append({
+            "id": member.id,
+            "user_id": member.user_id,
+            "username": member.user.username,
+            "email": member.user.email,
+            "full_name": member.user.full_name,
+            "avatar_url": member.user.avatar_url,
+            "joined_at": member.joined_at
+        })
+
+    #project data
+    # project_data=[]
+    # for project in workspace.projects:
+    #     project_data.append({
+    #         "id": project.id,
+    #         "name": project.name,
+    #         "description": project.description,
+    #         "created_at": project.created_at,
+    #         "updated_at": project.updated_at
+    #     })
+
+    # Convert workspace to dict and add formatted members
+    workspace_dict = {
+        "id": workspace.id,
+        "name": workspace.name,
+        "description": workspace.description,
+        "icon": workspace.icon,
+        "color": workspace.color,
+        "owner_id": workspace.owner_id,
+        "created_at": workspace.created_at,
+        "updated_at": workspace.updated_at,
+        "members": members_data,
+        # "projects": project_data
+
+    }
+
+    return workspace_dict
 
 
 @router.patch("/{workspace_id}", response_model=WorkspaceResponse)
