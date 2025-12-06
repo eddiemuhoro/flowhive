@@ -1,0 +1,218 @@
+# Supabase Database Setup & Migration Guide
+
+## 1. Get Supabase Connection String
+
+Navigate to your Supabase project:
+
+1. Go to **Settings → Database**
+2. Find the **Connection Pooling** section
+3. Copy the **Transaction mode** URI (port 6543, not 5432)
+
+```bash
+# Format:
+postgresql://postgres.[ref]:[password]@aws-0-[region].pooler.supabase.com:6543/postgres
+```
+
+<Note>
+**Important**: URL-encode special characters in your password:
+- `@` → `%40`
+- `%` → `%25`
+- `#` → `%23`
+</Note>
+
+---
+
+## 2. Setup Python Environment
+
+```bash
+# Navigate to backend directory
+cd backend
+
+# Create virtual environment (one time only)
+python3 -m venv venv
+
+# Activate virtual environment (every terminal session)
+source venv/bin/activate
+
+# Install dependencies (one time only)
+pip install -r requirements.txt
+```
+
+<Tip>
+Your terminal prompt will show `(venv)` when the virtual environment is active.
+Use `deactivate` to exit the virtual environment.
+</Tip>
+
+---
+
+## 3. Configure Environment Variables
+
+```bash
+# Create .env file from example
+cp .env.example .env
+
+# Edit .env and update the DATABASE_URL
+nano .env  # or use your preferred editor
+```
+
+Update the `DATABASE_URL` with your Supabase connection string:
+
+```env
+DATABASE_URL=postgresql://postgres.[your-ref]:[encoded-password]@aws-0-[region].pooler.supabase.com:6543/postgres
+```
+
+---
+
+## 4. Database Schema Management
+
+### First Time Setup
+
+```bash
+# Ensure virtual environment is active
+source venv/bin/activate
+
+# Create versions directory
+mkdir -p alembic/versions
+
+# Generate initial migration from your SQLAlchemy models
+alembic revision --autogenerate -m "Initial migration"
+
+# Apply migration to Supabase database
+alembic upgrade head
+```
+
+### When You Modify Models
+
+Whenever you add or change tables, columns, or relationships in your SQLAlchemy models:
+
+```bash
+# 1. Activate environment
+source venv/bin/activate
+
+# 2. Generate migration automatically
+alembic revision --autogenerate -m "Add user avatar column"
+
+# 3. Review the generated migration file in alembic/versions/
+
+# 4. Apply changes to Supabase
+alembic upgrade head
+```
+
+### Common Migration Commands
+
+```bash
+# Check current migration status
+alembic current
+
+# View migration history
+alembic history
+
+# Rollback last migration
+alembic downgrade -1
+
+# Rollback to specific version
+alembic downgrade <revision_id>
+
+# Upgrade to latest
+alembic upgrade head
+```
+
+---
+
+## 5. Key Concepts
+
+### Virtual Environment
+- **Purpose**: Isolates project dependencies from system Python
+- **Must activate**: In every new terminal session with `source venv/bin/activate`
+- **Benefits**: Prevents package conflicts, ensures reproducible environments
+
+### Alembic Migrations
+- **Purpose**: Version control for your database schema
+- **How it works**: Tracks changes as Python migration files
+- **Auto-generation**: Compares models to database and creates migration scripts
+- **Safe**: Apply changes incrementally with rollback capability
+
+### Transaction Support
+- **Built-in**: SQLAlchemy sessions automatically handle transactions
+- **Auto commit**: Successful operations commit automatically
+- **Auto rollback**: Errors trigger automatic rollback
+- **Connection pooling**: Optimized in `database.py` for Supabase
+
+---
+
+## 6. Start Development Server
+
+```bash
+# Ensure virtual environment is active
+source venv/bin/activate
+
+# Start FastAPI development server
+uvicorn app.main:app --reload
+
+# Server will run at http://localhost:8000
+# API docs available at http://localhost:8000/docs
+```
+
+<Success>
+Your FlowHive backend is now connected to Supabase with full transaction support! 🚀
+</Success>
+
+---
+
+## 7. Troubleshooting
+
+### Connection Issues
+
+**Problem**: `Network is unreachable` or connection timeout
+
+**Solution**: Use Connection Pooling URI (port 6543) instead of direct connection (port 5432)
+
+### Password Special Characters
+
+**Problem**: `invalid interpolation syntax`
+
+**Solution**: URL-encode special characters in your password
+
+### Missing alembic command
+
+**Problem**: `alembic: command not found`
+
+**Solution**: Activate virtual environment first with `source venv/bin/activate`
+
+### No tables created
+
+**Problem**: Only `alembic_version` table exists
+
+**Solution**: Create `alembic/versions` directory and run `alembic revision --autogenerate`
+
+---
+
+## 8. Workflow Summary
+
+```mermaid
+graph TD
+    A[Get Supabase Connection String] --> B[Setup Virtual Environment]
+    B --> C[Configure .env]
+    C --> D[Generate Migration]
+    D --> E[Apply Migration]
+    E --> F[Verify Tables in Supabase]
+    F --> G[Start Development]
+
+    H[Modify SQLAlchemy Models] --> I[Generate New Migration]
+    I --> J[Apply Migration]
+    J --> F
+```
+
+---
+
+## Quick Reference
+
+| Task | Command |
+|------|---------|
+| Activate environment | `source venv/bin/activate` |
+| Create migration | `alembic revision --autogenerate -m "message"` |
+| Apply migrations | `alembic upgrade head` |
+| Check status | `alembic current` |
+| Rollback | `alembic downgrade -1` |
+| Start server | `uvicorn app.main:app --reload` |
+| Deactivate environment | `deactivate` |
