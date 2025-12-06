@@ -23,7 +23,7 @@ export const useAuthStore = defineStore('auth', () => {
       const response = await authService.login(credentials)
       token.value = response.access_token
       localStorage.setItem('access_token', response.access_token)
-      
+
       // Fetch current user data
       await fetchCurrentUser()
     } catch (err: any) {
