@@ -19,27 +19,13 @@ export const useAuthStore = defineStore('auth', () => {
       loading.value = true
       error.value = null
 
-      // Mock login for development without backend
-      token.value = 'mock-token-' + Date.now()
-      localStorage.setItem('access_token', token.value)
-
-      // Mock user data
-      user.value = {
-        id: 1,
-        email: credentials.username,
-        username: credentials.username,
-        full_name: 'Mock User',
-        role: UserRole.EXECUTIVE,
-        is_active: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }
-
-      // Uncomment when backend is ready:
-      // const response = await authService.login(credentials)
-      // token.value = response.access_token
-      // localStorage.setItem('access_token', response.access_token)
-      // await fetchCurrentUser()
+      // Call backend API
+      const response = await authService.login(credentials)
+      token.value = response.access_token
+      localStorage.setItem('access_token', response.access_token)
+      
+      // Fetch current user data
+      await fetchCurrentUser()
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Login failed'
       throw err
@@ -70,11 +56,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   async function fetchCurrentUser() {
     try {
-      // Mock: Skip fetching if user already exists (mock mode)
-      if (user.value) return
-
-      // Uncomment when backend is ready:
-      // user.value = await authService.getCurrentUser()
+      user.value = await authService.getCurrentUser()
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user'
       logout()

@@ -47,6 +47,20 @@
             />
           </div>
           <div>
+            <label for="role" class="block text-sm font-medium text-gray-700 mb-1">Role</label>
+            <select
+              id="role"
+              v-model="formData.role"
+              name="role"
+              required
+              class="appearance-none relative block w-full px-3 py-2 border border-gray-300 text-gray-900 rounded-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            >
+              <option value="team_member">Team Member</option>
+              <option value="manager">Manager</option>
+              <option value="executive">Executive</option>
+            </select>
+          </div>
+          <div>
             <label for="password" class="sr-only">Password</label>
             <input
               id="password"
@@ -85,6 +99,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { UserRole } from '@/types/auth'
 
 const router = useRouter()
 const authStore = useAuthStore()
@@ -93,7 +108,8 @@ const formData = ref({
   email: '',
   username: '',
   full_name: '',
-  password: ''
+  password: '',
+  role: UserRole.TEAM_MEMBER
 })
 
 const handleSubmit = async () => {
