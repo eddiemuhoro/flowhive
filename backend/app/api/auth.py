@@ -70,7 +70,7 @@ async def login(
 
     # Create access token
     access_token = create_access_token(
-        data={"sub": user.id, "email": user.email}
+        data={"sub": str(user.id), "email": user.email}
     )
 
     return {"access_token": access_token, "token_type": "bearer"}
