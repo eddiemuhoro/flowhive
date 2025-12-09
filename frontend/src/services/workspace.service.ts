@@ -32,6 +32,11 @@ export const workspaceService = {
 
   async removeMember(workspaceId: number, userId: number): Promise<void> {
     await apiClient.delete(`/workspaces/${workspaceId}/members/${userId}`)
+  },
+
+  async getWorkspaceMembers(workspaceId: number): Promise<any[]> {
+    const response = await apiClient.get(`/workspaces/${workspaceId}/members`)
+    return response.data
   }
 }
 

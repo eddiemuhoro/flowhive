@@ -8,7 +8,8 @@ from app.schemas.workspace import (
     WorkspaceCreate,
     WorkspaceUpdate,
     WorkspaceResponse,
-    WorkspaceDetailResponse
+    WorkspaceDetailResponse,
+    WorkspaceMemberResponse
 )
 from app.utils.auth import get_current_active_user
 
@@ -263,3 +264,52 @@ async def remove_workspace_member(
     db.delete(member)
     db.commit()
     return None
+
+
+@router.get("/{workspace_id}/members", response_model=List[WorkspaceMemberResponse])
+async def get_workspace_members(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get all members of a workspace"""
+    # Check if workspace exists
+    workspace = db.query(Workspace).filter(Workspace.id == workspace_id).first()
+    if not workspace:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Workspace not found"
+        )
+
+    # Check if user is a member
+    is_member = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id,
+        WorkspaceMember.user_id == current_user.id
+    ).first()
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this workspace"
+        )
+
+    # Get all members with their user data
+    members = []
+    workspace_members = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id
+    ).all()
+
+    for member in workspace_members:
+        user = db.query(User).filter(User.id == member.user_id).first()
+        if user:
+            members.append({
+                "id": member.id,
+                "user_id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "full_name": user.full_name,
+                "avatar_url": user.avatar_url,
+                "joined_at": member.joined_at
+            })
+
+    return members
