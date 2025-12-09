@@ -1,6 +1,9 @@
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 from datetime import datetime
+
+if TYPE_CHECKING:
+    from app.schemas.task import TaskResponse
 
 
 class TaskListBase(BaseModel):
@@ -24,6 +27,7 @@ class TaskListResponse(TaskListBase):
     project_id: int
     created_at: datetime
     updated_at: datetime
+    tasks: List['TaskResponse'] = []
 
     class Config:
         from_attributes = True
@@ -62,3 +66,9 @@ class ProjectDetailResponse(ProjectResponse):
 
     class Config:
         from_attributes = True
+
+
+# Resolve forward references
+from app.schemas.task import TaskResponse
+TaskListResponse.model_rebuild()
+ProjectDetailResponse.model_rebuild()
