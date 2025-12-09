@@ -95,8 +95,69 @@ async def get_project(
             detail="Not a member of this workspace"
         )
 
-    return project
+    # Format task lists with tasks including assignee names
+    from app.models.task import Task
+    formatted_task_lists = []
+    for task_list in project.task_lists:
+        tasks_with_names = []
+        for task in task_list.tasks:
+            task_dict = {
+                "id": task.id,
+                "title": task.title,
+                "description": task.description,
+                "task_list_id": task.task_list_id,
+                "parent_task_id": task.parent_task_id,
+                "creator_id": task.creator_id,
+                "assignee_id": task.assignee_id,
+                "status": task.status,
+                "priority": task.priority,
+                "due_date": task.due_date,
+                "start_date": task.start_date,
+                "completed_at": task.completed_at,
+                "position": task.position,
+                "estimated_hours": task.estimated_hours,
+                "actual_hours": task.actual_hours,
+                "created_at": task.created_at,
+                "updated_at": task.updated_at,
+                "assignee_name": None,
+                "creator_name": None
+            }
 
+            # Get assignee name
+            if task.assignee_id:
+                assignee = db.query(User).filter(User.id == task.assignee_id).first()
+                if assignee:
+                    task_dict["assignee_name"] = assignee.full_name or assignee.username
+
+            # Get creator name
+            creator = db.query(User).filter(User.id == task.creator_id).first()
+            if creator:
+                task_dict["creator_name"] = creator.full_name or creator.username
+
+            tasks_with_names.append(task_dict)
+
+        formatted_task_lists.append({
+            "id": task_list.id,
+            "name": task_list.name,
+            "description": task_list.description,
+            "project_id": task_list.project_id,
+            "position": task_list.position,
+            "created_at": task_list.created_at,
+            "updated_at": task_list.updated_at,
+            "tasks": tasks_with_names
+        })
+
+    return {
+        "id": project.id,
+        "name": project.name,
+        "description": project.description,
+        "workspace_id": project.workspace_id,
+        "color": project.color,
+        "icon": project.icon,
+        "created_at": project.created_at,
+        "updated_at": project.updated_at,
+        "task_lists": formatted_task_lists
+    }
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
 async def update_project(
