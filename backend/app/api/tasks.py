@@ -108,8 +108,18 @@ async def get_task(
             detail="Task not found"
         )
 
+    # Get workspace_id through task_list -> project -> workspace
+    from app.models.project import TaskList, Project
+    task_list = db.query(TaskList).filter(TaskList.id == task.task_list_id).first()
+    workspace_id = None
+    if task_list:
+        project = db.query(Project).filter(Project.id == task_list.project_id).first()
+        if project:
+            workspace_id = project.workspace_id
+
     # Add names for response
     response_data = TaskDetailResponse.model_validate(task)
+    response_data.workspace_id = workspace_id
     if task.assignee:
         response_data.assignee_name = task.assignee.full_name or task.assignee.username
     if task.creator:

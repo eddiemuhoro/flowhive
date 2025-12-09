@@ -44,6 +44,8 @@ class TaskResponse(TaskBase):
     actual_hours: Optional[int] = None
     created_at: datetime
     updated_at: datetime
+    assignee_name: Optional[str] = None
+    creator_name: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -66,6 +68,7 @@ class TaskDetailResponse(TaskResponse):
     subtasks: List[SubtaskResponse] = []
     assignee_name: Optional[str] = None
     creator_name: Optional[str] = None
+    workspace_id: Optional[int] = None
 
     class Config:
         from_attributes = True
