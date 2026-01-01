@@ -20,11 +20,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Create upload directory if it doesn't exist
-os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
-
-# Mount static files for uploads
-app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
+# Create upload directory if it doesn't exist (skip in serverless)
+if not os.environ.get('VERCEL'):
+    os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+    # Mount static files for uploads (skip in serverless)
+    app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads")
 
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
