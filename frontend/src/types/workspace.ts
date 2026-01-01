@@ -1,3 +1,5 @@
+import type { Task } from './task'
+
 export interface Workspace {
   id: number
   name: string
@@ -34,28 +36,6 @@ export interface Project {
   updated_at: string
 }
 
-export interface TaskList {
-  id: number
-  name: string
-  description?: string
-  project_id: number
-  position: number
-  created_at: string
-  updated_at: string
-  tasks?: Task[]
-}
-
 export interface ProjectDetail extends Project {
-  task_lists: TaskList[]
-}
-
-interface Task {
-  id: number
-  title: string
-  description?: string
-  task_list_id: number
-  status: string
-  priority: string
-  created_at: string
-  updated_at: string
+  tasks: Task[]
 }

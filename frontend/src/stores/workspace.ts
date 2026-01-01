@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { workspaceService, projectService } from '@/services/workspace.service'
-import type { Workspace, WorkspaceDetail, Project, ProjectDetail, TaskList } from '@/types/workspace'
+import type { Workspace, WorkspaceDetail, Project, ProjectDetail } from '@/types/workspace'
 
 export const useWorkspaceStore = defineStore('workspace', () => {
   const workspaces = ref<Workspace[]>([])
@@ -131,23 +131,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
-  async function createTaskList(data: Partial<TaskList>) {
-    try {
-      loading.value = true
-      error.value = null
-      const taskList = await projectService.createTaskList(data)
-      if (currentProject.value && currentProject.value.id === data.project_id) {
-        currentProject.value.task_lists.push(taskList)
-      }
-      return taskList
-    } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to create task list'
-      throw err
-    } finally {
-      loading.value = false
-    }
-  }
-
   return {
     workspaces,
     currentWorkspace,
@@ -162,7 +145,6 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteWorkspace,
     fetchProjects,
     fetchProject,
-    createProject,
-    createTaskList
+    createProject
   }
 })

@@ -1,5 +1,5 @@
 import { apiClient } from './api'
-import type { Workspace, WorkspaceDetail, Project, ProjectDetail, TaskList } from '@/types/workspace'
+import type { Workspace, WorkspaceDetail, Project, ProjectDetail } from '@/types/workspace'
 
 export const workspaceService = {
   async getWorkspaces(): Promise<Workspace[]> {
@@ -63,19 +63,5 @@ export const projectService = {
 
   async deleteProject(id: number): Promise<void> {
     await apiClient.delete(`/projects/${id}`)
-  },
-
-  async createTaskList(data: Partial<TaskList>): Promise<TaskList> {
-    const response = await apiClient.post<TaskList>('/projects/task-lists', data)
-    return response.data
-  },
-
-  async updateTaskList(id: number, data: Partial<TaskList>): Promise<TaskList> {
-    const response = await apiClient.patch<TaskList>(`/projects/task-lists/${id}`, data)
-    return response.data
-  },
-
-  async deleteTaskList(id: number): Promise<void> {
-    await apiClient.delete(`/projects/task-lists/${id}`)
   }
 }

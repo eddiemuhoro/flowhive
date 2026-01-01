@@ -3,7 +3,7 @@ import type { Task, TaskDetail, Comment, Attachment } from '@/types/task'
 
 export const taskService = {
   async getTasks(params?: {
-    task_list_id?: number
+    project_id?: number
     assignee_id?: number
     status?: string
   }): Promise<Task[]> {

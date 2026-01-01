@@ -2,7 +2,7 @@ export interface Task {
   id: number
   title: string
   description?: string
-  task_list_id: number
+  project_id: number
   parent_task_id?: number
   creator_id: number
   assignee_id?: number
@@ -16,6 +16,8 @@ export interface Task {
   actual_hours?: number
   created_at: string
   updated_at: string
+  assignee_name?: string
+  creator_name?: string
 }
 
 export enum TaskStatus {
