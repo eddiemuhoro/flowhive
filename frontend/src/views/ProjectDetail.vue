@@ -745,6 +745,15 @@
               />
             </div>
             <div>
+              <label for="dueDate" class="block text-sm font-medium text-gray-700">Due Date</label>
+              <input
+                id="dueDate"
+                v-model="taskForm.due_date"
+                type="date"
+                class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+            </div>
+            <div>
               <label for="priority" class="block text-sm font-medium text-gray-700">Priority</label>
               <select
                 id="priority"
@@ -822,7 +831,8 @@ const taskForm = ref({
   project_id: 0,
   assignee_id: null as number | null,
   priority: TaskPriority.MEDIUM,
-  status: TaskStatus.TODO
+  status: TaskStatus.TODO,
+  due_date: '' as string | null
 })
 
 // Computed properties for different views
@@ -1061,7 +1071,8 @@ const handleCreateTask = async () => {
     // Convert null to undefined for API compatibility
     const taskData = {
       ...taskForm.value,
-      assignee_id: taskForm.value.assignee_id ?? undefined
+      assignee_id: taskForm.value.assignee_id ?? undefined,
+      due_date: taskForm.value.due_date ? `${taskForm.value.due_date}T23:59:59` : undefined
     }
     await taskStore.createTask(taskData)
     showCreateTask.value = false
@@ -1070,6 +1081,7 @@ const handleCreateTask = async () => {
     taskForm.value.assignee_id = null
     taskForm.value.priority = TaskPriority.MEDIUM
     taskForm.value.status = TaskStatus.TODO
+    taskForm.value.due_date = ''
     // Refresh project to show new task
     await workspaceStore.fetchProject(projectId.value)
   } catch (error) {
