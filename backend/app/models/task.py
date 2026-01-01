@@ -26,7 +26,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    task_list_id = Column(Integer, ForeignKey("task_lists.id"), nullable=False)
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     parent_task_id = Column(Integer, ForeignKey("tasks.id"), nullable=True)  # For subtasks
     creator_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     assignee_id = Column(Integer, ForeignKey("users.id"), nullable=True)
@@ -42,7 +42,7 @@ class Task(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
-    task_list = relationship("TaskList", back_populates="tasks")
+    project = relationship("Project", back_populates="tasks")
     creator = relationship("User", back_populates="created_tasks", foreign_keys=[creator_id])
     assignee = relationship("User", back_populates="assigned_tasks", foreign_keys=[assignee_id])
     parent_task = relationship("Task", remote_side=[id], backref="subtasks")

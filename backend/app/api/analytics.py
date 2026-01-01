@@ -6,7 +6,7 @@ from sqlalchemy import func, case
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember
-from app.models.project import Project, TaskList
+from app.models.project import Project
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.schemas.analytics import (
     TaskAnalytics,
@@ -36,7 +36,7 @@ async def get_task_analytics(
 
     # Filter by workspace if provided
     if workspace_id:
-        query = query.join(Task.task_list).join(TaskList.project).filter(
+        query = query.join(Task.project).filter(
             Project.workspace_id == workspace_id
         )
 
@@ -91,8 +91,8 @@ async def get_project_analytics(
         )
 
     # Get tasks in this project
-    tasks = db.query(Task).join(Task.task_list).filter(
-        TaskList.project_id == project_id
+    tasks = db.query(Task).filter(
+        Task.project_id == project_id
     )
 
     total_tasks = tasks.count()
@@ -135,7 +135,7 @@ async def get_user_productivity(
         tasks_query = db.query(Task).filter(Task.assignee_id == user.id)
 
         if workspace_id:
-            tasks_query = tasks_query.join(Task.task_list).join(TaskList.project).filter(
+            tasks_query = tasks_query.join(Task.project).filter(
                 Project.workspace_id == workspace_id
             )
 
@@ -200,7 +200,7 @@ async def get_executive_dashboard(
     for workspace in workspaces:
         projects = db.query(Project).filter(Project.workspace_id == workspace.id).all()
 
-        workspace_tasks = db.query(Task).join(Task.task_list).join(TaskList.project).filter(
+        workspace_tasks = db.query(Task).join(Task.project).filter(
             Project.workspace_id == workspace.id
         )
 
@@ -213,8 +213,8 @@ async def get_executive_dashboard(
 
         project_analytics = []
         for project in projects:
-            proj_tasks = db.query(Task).join(Task.task_list).filter(
-                TaskList.project_id == project.id
+            proj_tasks = db.query(Task).filter(
+                Task.project_id == project.id
             )
             proj_total = proj_tasks.count()
             proj_completed = proj_tasks.filter(Task.status == TaskStatus.COMPLETED).count()

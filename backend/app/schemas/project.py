@@ -6,33 +6,6 @@ if TYPE_CHECKING:
     from app.schemas.task import TaskResponse
 
 
-class TaskListBase(BaseModel):
-    name: str
-    description: Optional[str] = None
-    position: int = 0
-
-
-class TaskListCreate(TaskListBase):
-    project_id: int
-
-
-class TaskListUpdate(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    position: Optional[int] = None
-
-
-class TaskListResponse(TaskListBase):
-    id: int
-    project_id: int
-    created_at: datetime
-    updated_at: datetime
-    tasks: List['TaskResponse'] = []
-
-    class Config:
-        from_attributes = True
-
-
 class ProjectBase(BaseModel):
     name: str
     description: Optional[str] = None
@@ -62,7 +35,7 @@ class ProjectResponse(ProjectBase):
 
 
 class ProjectDetailResponse(ProjectResponse):
-    task_lists: List[TaskListResponse] = []
+    tasks: List['TaskResponse'] = []
 
     class Config:
         from_attributes = True
@@ -70,5 +43,4 @@ class ProjectDetailResponse(ProjectResponse):
 
 # Resolve forward references
 from app.schemas.task import TaskResponse
-TaskListResponse.model_rebuild()
 ProjectDetailResponse.model_rebuild()

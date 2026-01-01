@@ -16,7 +16,7 @@ class TaskBase(BaseModel):
 
 
 class TaskCreate(TaskBase):
-    task_list_id: int
+    project_id: int
     parent_task_id: Optional[int] = None
     assignee_id: Optional[int] = None
 
@@ -36,7 +36,7 @@ class TaskUpdate(BaseModel):
 
 class TaskResponse(TaskBase):
     id: int
-    task_list_id: int
+    project_id: int
     parent_task_id: Optional[int] = None
     creator_id: int
     assignee_id: Optional[int] = None

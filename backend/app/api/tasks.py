@@ -54,7 +54,7 @@ async def create_task(
 
 @router.get("/", response_model=List[TaskResponse])
 async def get_tasks(
-    task_list_id: Optional[int] = None,
+    project_id: Optional[int] = None,
     assignee_id: Optional[int] = None,
     status: Optional[TaskStatus] = None,
     skip: int = 0,
@@ -65,8 +65,8 @@ async def get_tasks(
     """Get tasks with optional filters"""
     query = db.query(Task)
 
-    if task_list_id:
-        query = query.filter(Task.task_list_id == task_list_id)
+    if project_id:
+        query = query.filter(Task.project_id == project_id)
 
     if assignee_id:
         query = query.filter(Task.assignee_id == assignee_id)
@@ -108,14 +108,12 @@ async def get_task(
             detail="Task not found"
         )
 
-    # Get workspace_id through task_list -> project -> workspace
-    from app.models.project import TaskList, Project
-    task_list = db.query(TaskList).filter(TaskList.id == task.task_list_id).first()
+    # Get workspace_id through project -> workspace
+    from app.models.project import Project
     workspace_id = None
-    if task_list:
-        project = db.query(Project).filter(Project.id == task_list.project_id).first()
-        if project:
-            workspace_id = project.workspace_id
+    project = db.query(Project).filter(Project.id == task.project_id).first()
+    if project:
+        workspace_id = project.workspace_id
 
     # Add names for response
     response_data = TaskDetailResponse.model_validate(task)
