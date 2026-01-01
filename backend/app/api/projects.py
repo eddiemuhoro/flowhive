@@ -72,7 +72,7 @@ async def get_project(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Get a specific project with task lists"""
+    """Get a specific project with tasks"""
     project = db.query(Project).filter(Project.id == project_id).first()
     if not project:
         raise HTTPException(
@@ -92,57 +92,44 @@ async def get_project(
             detail="Not a member of this workspace"
         )
 
-    # Format task lists with tasks including assignee names
+    # Format tasks with assignee and creator names
     from app.models.task import Task
-    formatted_task_lists = []
-    for task_list in project.task_lists:
-        tasks_with_names = []
-        for task in task_list.tasks:
-            task_dict = {
-                "id": task.id,
-                "title": task.title,
-                "description": task.description,
-                "task_list_id": task.task_list_id,
-                "parent_task_id": task.parent_task_id,
-                "creator_id": task.creator_id,
-                "assignee_id": task.assignee_id,
-                "status": task.status,
-                "priority": task.priority,
-                "due_date": task.due_date,
-                "start_date": task.start_date,
-                "completed_at": task.completed_at,
-                "position": task.position,
-                "estimated_hours": task.estimated_hours,
-                "actual_hours": task.actual_hours,
-                "created_at": task.created_at,
-                "updated_at": task.updated_at,
-                "assignee_name": None,
-                "creator_name": None
-            }
+    tasks_with_names = []
+    for task in project.tasks:
+        task_dict = {
+            "id": task.id,
+            "title": task.title,
+            "description": task.description,
+            "project_id": task.project_id,
+            "parent_task_id": task.parent_task_id,
+            "creator_id": task.creator_id,
+            "assignee_id": task.assignee_id,
+            "status": task.status,
+            "priority": task.priority,
+            "due_date": task.due_date,
+            "start_date": task.start_date,
+            "completed_at": task.completed_at,
+            "position": task.position,
+            "estimated_hours": task.estimated_hours,
+            "actual_hours": task.actual_hours,
+            "created_at": task.created_at,
+            "updated_at": task.updated_at,
+            "assignee_name": None,
+            "creator_name": None
+        }
 
-            # Get assignee name
-            if task.assignee_id:
-                assignee = db.query(User).filter(User.id == task.assignee_id).first()
-                if assignee:
-                    task_dict["assignee_name"] = assignee.full_name or assignee.username
+        # Get assignee name
+        if task.assignee_id:
+            assignee = db.query(User).filter(User.id == task.assignee_id).first()
+            if assignee:
+                task_dict["assignee_name"] = assignee.full_name or assignee.username
 
-            # Get creator name
-            creator = db.query(User).filter(User.id == task.creator_id).first()
-            if creator:
-                task_dict["creator_name"] = creator.full_name or creator.username
+        # Get creator name
+        creator = db.query(User).filter(User.id == task.creator_id).first()
+        if creator:
+            task_dict["creator_name"] = creator.full_name or creator.username
 
-            tasks_with_names.append(task_dict)
-
-        formatted_task_lists.append({
-            "id": task_list.id,
-            "name": task_list.name,
-            "description": task_list.description,
-            "project_id": task_list.project_id,
-            "position": task_list.position,
-            "created_at": task_list.created_at,
-            "updated_at": task_list.updated_at,
-            "tasks": tasks_with_names
-        })
+        tasks_with_names.append(task_dict)
 
     return {
         "id": project.id,
@@ -153,7 +140,7 @@ async def get_project(
         "icon": project.icon,
         "created_at": project.created_at,
         "updated_at": project.updated_at,
-        "task_lists": formatted_task_lists
+        "tasks": tasks_with_names
     }
 
 @router.patch("/{project_id}", response_model=ProjectResponse)
