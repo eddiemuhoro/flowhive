@@ -48,7 +48,7 @@ export const useNotificationStore = defineStore('notification', () => {
     })
   }
 
-  function handleTaskDeleted(data: any) {
+  function handleTaskDeleted() {
     addNotification({
       type: 'task_deleted',
       title: 'Task Deleted',
