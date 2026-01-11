@@ -23,11 +23,21 @@ export function useTaskDragDrop(projectId: Ref<number>) {
       return
     }
 
+    const task = draggedTask.value
+    const oldStatus = task.status
+
     try {
-      await taskStore.updateTask(draggedTask.value.id, { status: newStatus as TaskStatus })
-      await workspaceStore.fetchProject(projectId.value)
+      // Optimistic update - update UI immediately
+      task.status = newStatus as TaskStatus
+
+      // Update in background without refetching entire project
+      await taskStore.updateTask(task.id, { status: newStatus as TaskStatus })
     } catch (error) {
       console.error('Failed to update task status:', error)
+      // Revert on error
+      task.status = oldStatus
+      // Only refetch on error to restore correct state
+      await workspaceStore.fetchProject(projectId.value)
     } finally {
       draggedTask.value = null
     }

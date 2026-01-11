@@ -312,11 +312,15 @@ watch(() => route.params.id, async (newId) => {
 
 // Task operations
 const updateTaskStatus = async (task: Task) => {
+  const oldStatus = task.status
   try {
+    // Optimistic update - UI already updated via v-model
     await taskStore.updateTask(task.id, { status: task.status as TaskStatus })
-    await workspaceStore.fetchProject(projectId.value)
   } catch (error) {
     console.error('Failed to update task status:', error)
+    // Revert on error
+    task.status = oldStatus
+    await workspaceStore.fetchProject(projectId.value)
   }
 }
 
@@ -341,11 +345,14 @@ const createQuickTask = async (status: string, title: string, dueDate: string) =
 
 // Inline priority update
 const updateTaskPriority = async (task: Task) => {
+  const oldPriority = task.priority
   try {
+    // Optimistic update - UI already updated via v-model
     await taskStore.updateTask(task.id, { priority: task.priority })
   } catch (error) {
     console.error('Failed to update task priority:', error)
-    // Refresh to revert on error
+    // Revert on error
+    task.priority = oldPriority
     await workspaceStore.fetchProject(projectId.value)
   }
 }
