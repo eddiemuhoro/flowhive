@@ -13,6 +13,7 @@ class ProjectBase(BaseModel):
     icon: Optional[str] = None
 
 
+#pass project base to be inherited
 class ProjectCreate(ProjectBase):
     workspace_id: int
 
