@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import settings
@@ -50,6 +50,28 @@ async def root():
 @app.get("/health")
 async def health_check():
     return {"status": "healthy"}
+
+
+@app.post("/api/test-upload", tags=["Testing"])
+async def test_file_upload(
+    file: UploadFile = File(..., description="File to upload for testing")
+):
+    """
+    Test endpoint for file upload functionality in Swagger.
+    
+    This endpoint accepts a single file upload and returns information about the uploaded file.
+    Useful for testing file upload functionality without authentication.
+    """
+    contents = await file.read()
+    file_size = len(contents)
+    
+    return {
+        "message": "File uploaded successfully",
+        "filename": file.filename,
+        "content_type": file.content_type,
+        "file_size_bytes": file_size,
+        "file_size_kb": round(file_size / 1024, 2)
+    }
 
 
 if __name__ == "__main__":
