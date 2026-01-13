@@ -46,6 +46,8 @@ dist-ssr/
 .env
 .env.local
 .env.*.local
+.env.development
+.env.production
 
 # Database
 *.db
@@ -64,3 +66,4 @@ htmlcov/
 # Uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+
