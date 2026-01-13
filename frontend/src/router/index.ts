@@ -62,8 +62,17 @@ const router = createRouter({
   ]
 })
 
+// Track if auth has been initialized
+let authInitialized = false
+
 router.beforeEach(async (to: RouteLocationNormalized, _from: RouteLocationNormalized, next: NavigationGuardNext) => {
   const authStore = useAuthStore()
+
+  // Wait for auth initialization on first navigation
+  if (!authInitialized) {
+    await authStore.initialize()
+    authInitialized = true
+  }
 
   if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
     next({ name: 'login', query: { redirect: to.fullPath } })
