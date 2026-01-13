@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "Flowhive"
     APP_VERSION: str = "1.0.0"
     DEBUG: bool = True
-    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://flowhive-sage.vercel.app/api"
+    ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://flowhive-crystal.vercel.app"
 
     # File Upload
     UPLOAD_DIR: str = "./uploads"
