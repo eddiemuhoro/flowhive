@@ -33,9 +33,8 @@ async def create_task(
 ):
     """Create a new task"""
     task = Task(
-        **task_data.model_dump(exclude={"assignee_id"}),
+        **task_data.model_dump(),
         creator_id=current_user.id,
-        assignee_id=task_data.assignee_id
     )
 
     db.add(task)
