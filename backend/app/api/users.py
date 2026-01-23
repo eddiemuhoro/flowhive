@@ -9,6 +9,21 @@ from app.utils.auth import get_current_active_user, require_role
 router = APIRouter()
 
 
+@router.get("/search", response_model=List[UserResponse])
+async def search_users(
+    q: str,
+    limit: int = 10,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Search users by email or username"""
+    search_term = f"%{q}%"
+    users = db.query(User).filter(
+        (User.email.ilike(search_term)) | (User.username.ilike(search_term))
+    ).limit(limit).all()
+    return users
+
+
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
     skip: int = 0,
