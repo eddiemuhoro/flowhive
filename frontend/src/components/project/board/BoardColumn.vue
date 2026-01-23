@@ -95,7 +95,7 @@
             <option value="urgent">Urgent</option>
           </select>
           <span v-if="task.assignee_name" class="text-xs text-gray-500">
-            {{ task.assignee_name.split(' ')[0] }}
+            {{ task.assignee_name.split(' ')[task.assignee_name.split(' ').length - 1] }}
           </span>
         </div>
         <div v-if="task.due_date" class="flex items-center text-xs mt-1" :class="getDueDateClass(task.due_date)">

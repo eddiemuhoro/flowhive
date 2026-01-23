@@ -131,6 +131,45 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     }
   }
 
+  async function addMember(workspaceId: number, userId: number) {
+    try {
+      loading.value = true
+      error.value = null
+      await workspaceService.addMember(workspaceId, userId)
+      // Refresh workspace to get updated members list
+      await fetchWorkspace(workspaceId)
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to add member'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function removeMember(workspaceId: number, userId: number) {
+    try {
+      loading.value = true
+      error.value = null
+      await workspaceService.removeMember(workspaceId, userId)
+      // Refresh workspace to get updated members list
+      await fetchWorkspace(workspaceId)
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to remove member'
+      throw err
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function searchUsers(query: string) {
+    try {
+      return await workspaceService.searchUsers(query)
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to search users'
+      throw err
+    }
+  }
+
   return {
     workspaces,
     currentWorkspace,
@@ -145,6 +184,9 @@ export const useWorkspaceStore = defineStore('workspace', () => {
     deleteWorkspace,
     fetchProjects,
     fetchProject,
-    createProject
+    createProject,
+    addMember,
+    removeMember,
+    searchUsers
   }
 })

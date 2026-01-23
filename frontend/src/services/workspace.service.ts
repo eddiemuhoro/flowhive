@@ -37,6 +37,11 @@ export const workspaceService = {
   async getWorkspaceMembers(workspaceId: number): Promise<any[]> {
     const response = await apiClient.get(`/workspaces/${workspaceId}/members`)
     return response.data
+  },
+
+  async searchUsers(query: string): Promise<any[]> {
+    const response = await apiClient.get(`/users/search?q=${encodeURIComponent(query)}`)
+    return response.data
   }
 }
 
