@@ -16,10 +16,10 @@ async def search_users(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
-    """Search users by email or username"""
+    """Search users by email, username, or full name"""
     search_term = f"%{q}%"
     users = db.query(User).filter(
-        (User.email.ilike(search_term)) | (User.username.ilike(search_term))
+        (User.email.ilike(search_term)) | (User.username.ilike(search_term)) | (User.full_name.ilike(search_term))
     ).limit(limit).all()
     return users
 
