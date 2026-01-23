@@ -89,12 +89,16 @@
             >
               <!-- Workspace Item -->
               <div
-                @click="toggleWorkspace(workspace.id)"
-                class="flex items-center justify-between px-3 py-2 rounded-md cursor-pointer hover:bg-gray-100 group"
+                class="flex items-center justify-between px-3 py-2 rounded-md hover:bg-gray-100 group"
+                :class="isActive(`/workspace/${workspace.id}`) ? 'bg-primary-50' : ''"
               >
-                <div class="flex items-center flex-1 min-w-0">
+                <button
+                  @click="toggleWorkspace(workspace.id)"
+                  class="p-1 -ml-1 rounded hover:bg-gray-200 flex-shrink-0"
+                  title="Toggle projects"
+                >
                   <svg
-                    class="w-4 h-4 flex-shrink-0 text-gray-400 transition-transform"
+                    class="w-4 h-4 text-gray-400 transition-transform"
                     :class="expandedWorkspaces.has(workspace.id) ? 'rotate-90' : ''"
                     fill="none"
                     stroke="currentColor"
@@ -102,11 +106,17 @@
                   >
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                   </svg>
-                  <span class="ml-2 text-sm font-medium text-gray-700 truncate">{{ workspace.name }}</span>
-                </div>
+                </button>
+                <RouterLink
+                  :to="`/workspace/${workspace.id}`"
+                  class="flex items-center flex-1 min-w-0 ml-1 cursor-pointer"
+                  :class="isActive(`/workspace/${workspace.id}`) ? 'text-primary-700 font-semibold' : 'text-gray-700'"
+                >
+                  <span class="text-sm font-medium truncate">{{ workspace.name }}</span>
+                </RouterLink>
                 <button
                   @click.stop="createProjectInWorkspace(workspace.id)"
-                  class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-500"
+                  class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-gray-200 text-gray-500 flex-shrink-0"
                   title="Add project"
                 >
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
