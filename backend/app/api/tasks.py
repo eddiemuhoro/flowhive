@@ -181,6 +181,12 @@ async def delete_task(
 
     db.delete(task)
     db.commit()
+
+    # Log activity
+    log_activity(db, task.id, current_user.id, "deleted", {
+        "title": task.title
+    })
+    db.commit()
     return None
 
 
@@ -188,7 +194,6 @@ async def delete_task(
 async def get_subtasks(
     task_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_active_user)
 ):
     """Get all subtasks of a task"""
     task = db.query(Task).filter(Task.id == task_id).first()
