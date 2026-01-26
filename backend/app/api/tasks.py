@@ -74,7 +74,18 @@ async def get_tasks(
         query = query.filter(Task.status == status)
 
     tasks = query.offset(skip).limit(limit).all()
-    return tasks
+    
+    response_tasks = []
+    for task in tasks:
+        task_response = TaskResponse.model_validate(task)
+        if task.assignee:
+            task_response.assignee_name = task.assignee.full_name or task.assignee.username
+        if task.creator:
+            task_response.creator_name = task.creator.full_name or task.creator.username
+        
+        response_tasks.append(task_response)
+        
+    return response_tasks
 
 
 @router.get("/my-tasks", response_model=List[TaskResponse])
