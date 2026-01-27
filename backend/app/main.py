@@ -2,7 +2,10 @@ from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.config import settings
-from app.api import auth, users, workspaces, projects, tasks, comments, attachments, analytics, websocket
+from app.api import (
+    auth, users, workspaces, projects, tasks, comments, 
+    attachments, analytics, websocket, field_operations, task_categories
+)
 import os
 
 app = FastAPI(
@@ -36,6 +39,8 @@ app.include_router(comments.router, prefix="/api/comments", tags=["Comments"])
 app.include_router(attachments.router, prefix="/api/attachments", tags=["Attachments"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(websocket.router, prefix="/api/ws", tags=["WebSocket"])
+app.include_router(field_operations.router, prefix="/api/field-activities", tags=["Field Operations"])
+app.include_router(task_categories.router, prefix="/api/task-categories", tags=["Task Categories"])
 
 
 @app.get("/")
