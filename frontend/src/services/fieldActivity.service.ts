@@ -1,0 +1,161 @@
+// Field Activity Service
+// Handles all field operations activity tracking API calls
+
+import { apiClient } from "./api";
+import type {
+  FieldActivity,
+  FieldActivityCreate,
+  FieldActivityUpdate,
+  FieldActivityDetail,
+  FieldActivityFilters,
+  FieldAnalytics,
+} from "@/types/field";
+
+export const fieldActivityService = {
+  /**
+   * Get all field activities for a workspace with optional filters
+   * @param workspaceId - The workspace ID
+   * @param filters - Optional filters for date, staff, category, customer
+   */
+  async getActivities(
+    workspaceId: number,
+    filters?: FieldActivityFilters,
+  ): Promise<FieldActivity[]> {
+    const response = await apiClient.get<FieldActivity[]>(
+      "/api/field-activities",
+      {
+        params: { workspace_id: workspaceId, ...filters },
+      },
+    );
+    return response.data;
+  },
+
+  /**
+   * Get a single field activity with photos
+   * @param activityId - The activity ID
+   * @param workspaceId - The workspace ID for validation
+   */
+  async getActivity(
+    activityId: number,
+    workspaceId: number,
+  ): Promise<FieldActivityDetail> {
+    const response = await apiClient.get<FieldActivityDetail>(
+      `/api/field-activities/${activityId}`,
+      {
+        params: { workspace_id: workspaceId },
+      },
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a new field activity
+   * @param data - Activity creation data
+   */
+  async createActivity(data: FieldActivityCreate): Promise<FieldActivity> {
+    const response = await apiClient.post<FieldActivity>(
+      "/api/field-activities",
+      data,
+    );
+    return response.data;
+  },
+
+  /**
+   * Update an existing field activity
+   * @param activityId - The activity ID
+   * @param workspaceId - The workspace ID for validation
+   * @param data - Activity update data
+   */
+  async updateActivity(
+    activityId: number,
+    workspaceId: number,
+    data: FieldActivityUpdate,
+  ): Promise<FieldActivity> {
+    const response = await apiClient.put<FieldActivity>(
+      `/api/field-activities/${activityId}`,
+      data,
+      {
+        params: { workspace_id: workspaceId },
+      },
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete a field activity (only creator or manager)
+   * @param activityId - The activity ID
+   * @param workspaceId - The workspace ID for validation
+   */
+  async deleteActivity(activityId: number, workspaceId: number): Promise<void> {
+    await apiClient.delete(`/api/field-activities/${activityId}`, {
+      params: { workspace_id: workspaceId },
+    });
+  },
+
+  /**
+   * Get analytics for field activities (manager/executive only)
+   * @param workspaceId - The workspace ID
+   * @param dateFrom - Start date (YYYY-MM-DD)
+   * @param dateTo - End date (YYYY-MM-DD)
+   */
+  async getAnalytics(
+    workspaceId: number,
+    dateFrom?: string,
+    dateTo?: string,
+  ): Promise<FieldAnalytics> {
+    const response = await apiClient.get<FieldAnalytics>(
+      "/api/field-activities/analytics",
+      {
+        params: {
+          workspace_id: workspaceId,
+          date_from: dateFrom,
+          date_to: dateTo,
+        },
+      },
+    );
+    return response.data;
+  },
+
+  /**
+   * Upload a photo for a field activity
+   * @param activityId - The activity ID
+   * @param workspaceId - The workspace ID for validation
+   * @param file - The image file to upload (max 10MB)
+   */
+  async uploadPhoto(
+    activityId: number,
+    workspaceId: number,
+    file: File,
+  ): Promise<{ message: string; photo_id: number }> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await apiClient.post<{
+      message: string;
+      photo_id: number;
+    }>(`/api/field-activities/${activityId}/photos`, formData, {
+      params: { workspace_id: workspaceId },
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
+  },
+
+  /**
+   * Delete a photo from a field activity
+   * @param activityId - The activity ID
+   * @param photoId - The photo ID
+   * @param workspaceId - The workspace ID for validation
+   */
+  async deletePhoto(
+    activityId: number,
+    photoId: number,
+    workspaceId: number,
+  ): Promise<void> {
+    await apiClient.delete(
+      `/api/field-activities/${activityId}/photos/${photoId}`,
+      {
+        params: { workspace_id: workspaceId },
+      },
+    );
+  },
+};
