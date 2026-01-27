@@ -22,9 +22,9 @@ export const fieldActivityService = {
     filters?: FieldActivityFilters,
   ): Promise<FieldActivity[]> {
     const response = await apiClient.get<FieldActivity[]>(
-      "/api/field-activities",
+      `/field-activities/workspace/${workspaceId}`,
       {
-        params: { workspace_id: workspaceId, ...filters },
+        params: filters,
       },
     );
     return response.data;
@@ -40,7 +40,7 @@ export const fieldActivityService = {
     workspaceId: number,
   ): Promise<FieldActivityDetail> {
     const response = await apiClient.get<FieldActivityDetail>(
-      `/api/field-activities/${activityId}`,
+      `/field-activities/${activityId}`,
       {
         params: { workspace_id: workspaceId },
       },
@@ -54,7 +54,7 @@ export const fieldActivityService = {
    */
   async createActivity(data: FieldActivityCreate): Promise<FieldActivity> {
     const response = await apiClient.post<FieldActivity>(
-      "/api/field-activities",
+      "/field-activities",
       data,
     );
     return response.data;
@@ -72,7 +72,7 @@ export const fieldActivityService = {
     data: FieldActivityUpdate,
   ): Promise<FieldActivity> {
     const response = await apiClient.put<FieldActivity>(
-      `/api/field-activities/${activityId}`,
+      `/field-activities/${activityId}`,
       data,
       {
         params: { workspace_id: workspaceId },
@@ -87,7 +87,7 @@ export const fieldActivityService = {
    * @param workspaceId - The workspace ID for validation
    */
   async deleteActivity(activityId: number, workspaceId: number): Promise<void> {
-    await apiClient.delete(`/api/field-activities/${activityId}`, {
+    await apiClient.delete(`/field-activities/${activityId}`, {
       params: { workspace_id: workspaceId },
     });
   },
@@ -104,7 +104,7 @@ export const fieldActivityService = {
     dateTo?: string,
   ): Promise<FieldAnalytics> {
     const response = await apiClient.get<FieldAnalytics>(
-      "/api/field-activities/analytics",
+      "/field-activities/analytics",
       {
         params: {
           workspace_id: workspaceId,
@@ -133,7 +133,7 @@ export const fieldActivityService = {
     const response = await apiClient.post<{
       message: string;
       photo_id: number;
-    }>(`/api/field-activities/${activityId}/photos`, formData, {
+    }>(`/field-activities/${activityId}/photos`, formData, {
       params: { workspace_id: workspaceId },
       headers: { "Content-Type": "multipart/form-data" },
     });
@@ -152,7 +152,7 @@ export const fieldActivityService = {
     workspaceId: number,
   ): Promise<void> {
     await apiClient.delete(
-      `/api/field-activities/${activityId}/photos/${photoId}`,
+      `/field-activities/${activityId}/photos/${photoId}`,
       {
         params: { workspace_id: workspaceId },
       },

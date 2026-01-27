@@ -100,7 +100,7 @@ export interface FieldActivityUpdate {
   customer_name?: string;
   location?: string;
   task_description?: string;
-  task_category_id?: number;
+  task_category_id?: number | null;
   remarks?: string;
   customer_rep?: string;
 }

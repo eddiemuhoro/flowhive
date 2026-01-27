@@ -176,7 +176,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import type { FieldActivityPhoto } from "@/types/field";
 
 interface Props {

@@ -1,29 +1,29 @@
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance } from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
+const API_URL = "http://localhost:8000/api";
 
 class ApiClient {
-  private client: AxiosInstance
+  private client: AxiosInstance;
 
   constructor() {
     this.client = axios.create({
       baseURL: API_URL,
       headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+        "Content-Type": "application/json",
+      },
+    });
 
     // Request interceptor to add auth token
     this.client.interceptors.request.use(
       (config) => {
-        const token = localStorage.getItem('access_token')
+        const token = localStorage.getItem("access_token");
         if (token) {
-          config.headers.Authorization = `Bearer ${token}`
+          config.headers.Authorization = `Bearer ${token}`;
         }
-        return config
+        return config;
       },
-      (error) => Promise.reject(error)
-    )
+      (error) => Promise.reject(error),
+    );
 
     // Response interceptor for error handling
     this.client.interceptors.response.use(
@@ -31,17 +31,17 @@ class ApiClient {
       (error) => {
         if (error.response?.status === 401) {
           // Clear token and redirect to login
-          localStorage.removeItem('access_token')
-          window.location.href = '/login'
+          localStorage.removeItem("access_token");
+          window.location.href = "/login";
         }
-        return Promise.reject(error)
-      }
-    )
+        return Promise.reject(error);
+      },
+    );
   }
 
   getClient(): AxiosInstance {
-    return this.client
+    return this.client;
   }
 }
 
-export const apiClient = new ApiClient().getClient()
+export const apiClient = new ApiClient().getClient();

@@ -114,10 +114,9 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useTaskCategoryStore } from "@/stores/taskCategory";
 import CategoryBadge from "./CategoryBadge.vue";
-import type { TaskCategory } from "@/types/field";
 
 interface Props {
-  modelValue: number | null;
+  modelValue: number | null | undefined;
   workspaceId: number;
   label?: string;
   placeholder?: string;

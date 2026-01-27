@@ -102,7 +102,6 @@ export const useTaskCategoryStore = defineStore("taskCategory", {
      */
     async updateCategory(
       categoryId: number,
-      workspaceId: number,
       data: TaskCategoryUpdate,
     ): Promise<TaskCategory> {
       this.loading = true;
@@ -111,7 +110,6 @@ export const useTaskCategoryStore = defineStore("taskCategory", {
       try {
         const updatedCategory = await taskCategoryService.updateCategory(
           categoryId,
-          workspaceId,
           data,
         );
         const index = this.categories.findIndex((cat) => cat.id === categoryId);
@@ -132,12 +130,12 @@ export const useTaskCategoryStore = defineStore("taskCategory", {
     /**
      * Soft delete a category
      */
-    async deleteCategory(categoryId: number, workspaceId: number) {
+    async deleteCategory(categoryId: number) {
       this.loading = true;
       this.error = null;
 
       try {
-        await taskCategoryService.deleteCategory(categoryId, workspaceId);
+        await taskCategoryService.deleteCategory(categoryId);
         // Update the local state to mark as inactive
         const category = this.categories.find((cat) => cat.id === categoryId);
         if (category) {

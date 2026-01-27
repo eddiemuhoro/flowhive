@@ -10,9 +10,14 @@
       </button>
     </div>
 
-    <div v-if="workspaceStore.loading" class="text-center py-12">Loading...</div>
+    <div v-if="workspaceStore.loading" class="text-center py-12">
+      Loading...
+    </div>
 
-    <div v-else-if="workspaceStore.workspaces.length === 0" class="text-center py-12 bg-white rounded-lg shadow">
+    <div
+      v-else-if="workspaceStore.workspaces.length === 0"
+      class="text-center py-12 bg-white rounded-lg shadow"
+    >
       <p class="text-gray-500 mb-4">No workspaces yet</p>
       <button
         @click="showCreateModal = true"
@@ -23,11 +28,11 @@
     </div>
 
     <div v-else class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-      <RouterLink
+      <div
         v-for="workspace in workspaceStore.workspaces"
         :key="workspace.id"
-        :to="`/workspace/${workspace.id}`"
-        class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow"
+        @click="navigateToWorkspace(workspace)"
+        class="bg-white overflow-hidden shadow rounded-lg hover:shadow-lg transition-shadow cursor-pointer"
       >
         <div class="p-6">
           <div class="flex items-center">
@@ -37,28 +42,55 @@
             >
               {{ workspace.icon || workspace.name.charAt(0).toUpperCase() }}
             </div>
-            <div class="ml-4">
-              <h3 class="text-lg font-medium text-gray-900">{{ workspace.name }}</h3>
+            <div class="ml-4 flex-1">
+              <h3 class="text-lg font-medium text-gray-900">
+                {{ workspace.name }}
+              </h3>
               <p class="text-sm text-gray-500">{{ workspace.description }}</p>
+              <span
+                class="inline-flex items-center mt-1 px-2 py-0.5 rounded text-xs font-medium"
+                :class="
+                  workspace.workspace_type === 'FIELD_OPERATIONS'
+                    ? 'bg-green-100 text-green-800'
+                    : 'bg-blue-100 text-blue-800'
+                "
+              >
+                {{
+                  workspace.workspace_type === "FIELD_OPERATIONS"
+                    ? "Field Operations"
+                    : "Project Management"
+                }}
+              </span>
             </div>
           </div>
         </div>
-      </RouterLink>
+      </div>
     </div>
 
     <!-- Create Workspace Modal -->
     <div v-if="showCreateModal" class="fixed z-10 inset-0 overflow-y-auto">
       <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" @click="showCreateModal = false"></div>
+        <div
+          class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          @click="showCreateModal = false"
+        ></div>
 
-        <div class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full z-20">
+        <div
+          class="bg-white rounded-lg overflow-hidden shadow-xl transform transition-all sm:max-w-lg sm:w-full z-20"
+        >
           <form @submit.prevent="handleCreate">
             <div class="px-6 py-4">
-              <h3 class="text-lg font-medium text-gray-900 mb-4">Create Workspace</h3>
+              <h3 class="text-lg font-medium text-gray-900 mb-4">
+                Create Workspace
+              </h3>
 
               <div class="space-y-4">
                 <div>
-                  <label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+                  <label
+                    for="name"
+                    class="block text-sm font-medium text-gray-700"
+                    >Name</label
+                  >
                   <input
                     v-model="formData.name"
                     type="text"
@@ -69,13 +101,41 @@
                 </div>
 
                 <div>
-                  <label for="description" class="block text-sm font-medium text-gray-700">Description</label>
+                  <label
+                    for="description"
+                    class="block text-sm font-medium text-gray-700"
+                    >Description</label
+                  >
                   <textarea
                     v-model="formData.description"
                     id="description"
                     rows="3"
                     class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                   ></textarea>
+                </div>
+
+                <div>
+                  <label
+                    for="workspace_type"
+                    class="block text-sm font-medium text-gray-700 mb-1"
+                    >Workspace Type</label
+                  >
+                  <select
+                    v-model="formData.workspace_type"
+                    id="workspace_type"
+                    required
+                    class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  >
+                    <option value="PROJECT_MANAGEMENT">
+                      Project Management
+                    </option>
+                    <option value="FIELD_OPERATIONS">Field Operations</option>
+                  </select>
+                  <p class="mt-1 text-xs text-gray-500">
+                    Project Management: For development teams tracking tasks and
+                    projects<br />
+                    Field Operations: For field workers logging daily activities
+                  </p>
                 </div>
               </div>
             </div>
@@ -104,27 +164,49 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { useWorkspaceStore } from '@/stores/workspace'
+import { ref, onMounted } from "vue";
+import { useRouter } from "vue-router";
+import { useWorkspaceStore } from "@/stores/workspace";
+import type { Workspace } from "@/types/workspace";
 
-const workspaceStore = useWorkspaceStore()
-const showCreateModal = ref(false)
+const router = useRouter();
+const workspaceStore = useWorkspaceStore();
+const showCreateModal = ref(false);
 const formData = ref({
-  name: '',
-  description: ''
-})
+  name: "",
+  description: "",
+  workspace_type: "PROJECT_MANAGEMENT" as
+    | "PROJECT_MANAGEMENT"
+    | "FIELD_OPERATIONS",
+});
+
+const navigateToWorkspace = async (workspace: Workspace) => {
+  // Set as current workspace
+  await workspaceStore.fetchWorkspace(workspace.id);
+
+  // Route based on workspace type
+  if (workspace.workspace_type === "FIELD_OPERATIONS") {
+    router.push("/field");
+  } else {
+    router.push(`/workspace/${workspace.id}`);
+  }
+};
 
 const handleCreate = async () => {
   try {
-    await workspaceStore.createWorkspace(formData.value)
-    showCreateModal.value = false
-    formData.value = { name: '', description: '' }
+    await workspaceStore.createWorkspace(formData.value as any);
+    showCreateModal.value = false;
+    formData.value = {
+      name: "",
+      description: "",
+      workspace_type: "PROJECT_MANAGEMENT",
+    };
   } catch (error) {
-    console.error('Failed to create workspace:', error)
+    console.error("Failed to create workspace:", error);
   }
-}
+};
 
 onMounted(() => {
-  workspaceStore.fetchWorkspaces()
-})
+  workspaceStore.fetchWorkspaces();
+});
 </script>

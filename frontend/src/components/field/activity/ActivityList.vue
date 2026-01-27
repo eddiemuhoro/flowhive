@@ -159,7 +159,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, computed } from "vue";
 import ActivityCard from "./ActivityCard.vue";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
 import type { FieldActivity, FieldActivityFilters } from "@/types/field";
