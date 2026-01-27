@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime
+from app.models.workspace import WorkspaceType
 
 
 class WorkspaceBase(BaseModel):
@@ -11,7 +12,7 @@ class WorkspaceBase(BaseModel):
 
 
 class WorkspaceCreate(WorkspaceBase):
-    pass
+    workspace_type: WorkspaceType = WorkspaceType.PROJECT_MANAGEMENT
 
 
 class WorkspaceUpdate(BaseModel):
@@ -19,6 +20,7 @@ class WorkspaceUpdate(BaseModel):
     description: Optional[str] = None
     icon: Optional[str] = None
     color: Optional[str] = None
+    workspace_type: Optional[WorkspaceType] = None
 
 
 class WorkspaceMemberResponse(BaseModel):
@@ -48,6 +50,7 @@ class WorkspaceProjectResponse(BaseModel):
 class WorkspaceResponse(WorkspaceBase):
     id: int
     owner_id: int
+    workspace_type: WorkspaceType
     created_at: datetime
     updated_at: datetime
 
