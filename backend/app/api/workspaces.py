@@ -28,6 +28,7 @@ async def create_workspace(
         description=workspace_data.description,
         icon=workspace_data.icon,
         color=workspace_data.color,
+        workspace_type=workspace_data.workspace_type,
         owner_id=current_user.id
     )
 
@@ -116,6 +117,7 @@ async def get_workspace(
         "icon": workspace.icon,
         "color": workspace.color,
         "owner_id": workspace.owner_id,
+        "workspace_type": workspace.workspace_type,
         "created_at": workspace.created_at,
         "updated_at": workspace.updated_at,
         "members": members_data,
