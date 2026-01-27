@@ -1,7 +1,13 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Enum as SQLEnum
 from sqlalchemy.orm import relationship
 from app.database import Base
+import enum
+
+
+class WorkspaceType(str, enum.Enum):
+    PROJECT_MANAGEMENT = "PROJECT_MANAGEMENT"
+    FIELD_OPERATIONS = "FIELD_OPERATIONS"
 
 
 class Workspace(Base):
@@ -11,6 +17,7 @@ class Workspace(Base):
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    workspace_type = Column(SQLEnum(WorkspaceType), default=WorkspaceType.PROJECT_MANAGEMENT, nullable=False, index=True)
     icon = Column(String, nullable=True)
     color = Column(String, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
@@ -20,6 +27,7 @@ class Workspace(Base):
     owner = relationship("User", back_populates="owned_workspaces", foreign_keys=[owner_id])
     members = relationship("WorkspaceMember", back_populates="workspace", cascade="all, delete-orphan")
     projects = relationship("Project", back_populates="workspace", cascade="all, delete-orphan")
+    field_activities = relationship("FieldActivity", back_populates="workspace", cascade="all, delete-orphan")
 
 
 class WorkspaceMember(Base):
