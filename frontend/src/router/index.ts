@@ -119,6 +119,10 @@ router.beforeEach(
     // Wait for auth initialization on first navigation
     if (!authInitialized) {
       await authStore.initialize();
+      // Initialize workspace from localStorage after auth
+      if (authStore.isAuthenticated) {
+        await workspaceStore.initializeWorkspace();
+      }
       authInitialized = true;
     }
 
