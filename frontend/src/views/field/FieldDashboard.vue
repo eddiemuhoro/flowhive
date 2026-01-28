@@ -475,6 +475,10 @@ const loadActivities = async () => {
       .split("T")[0];
     await activityStore.fetchActivities(currentWorkspaceId.value, {
       date_from: sevenDaysAgo,
+      support_staff_id:
+        currentUser.value?.role?.toUpperCase() === "TEAM_MEMBER"
+          ? currentUser.value?.id
+          : undefined,
     });
   } catch (error) {
     console.error("Failed to load activities:", error);
