@@ -1,80 +1,91 @@
-import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
-import { authService } from '@/services/auth.service'
-import type { User, LoginRequest, RegisterRequest } from '@/types/auth'
+import { defineStore } from "pinia";
+import { ref, computed } from "vue";
+import { authService } from "@/services/auth.service";
+import type { User, LoginRequest, RegisterRequest } from "@/types/auth";
 
-export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
-  const token = ref<string | null>(localStorage.getItem('access_token'))
-  const loading = ref(false)
-  const error = ref<string | null>(null)
+export const useAuthStore = defineStore("auth", () => {
+  const user = ref<User | null>(null);
+  const token = ref<string | null>(localStorage.getItem("access_token"));
+  const loading = ref(false);
+  const error = ref<string | null>(null);
 
-  const isAuthenticated = computed(() => !!token.value && !!user.value)
-  const isExecutive = computed(() => user.value?.role === 'executive')
-  const isManager = computed(() => user.value?.role === 'manager' || isExecutive.value)
+  const isAuthenticated = computed(() => !!token.value && !!user.value);
+  const isExecutive = computed(() => user.value?.role === "executive");
+  const isManager = computed(
+    () => user.value?.role === "manager" || isExecutive.value,
+  );
 
   async function login(credentials: LoginRequest) {
     try {
-      loading.value = true
-      error.value = null
+      loading.value = true;
+      error.value = null;
 
       // Call backend API
-      const response = await authService.login(credentials)
-      token.value = response.access_token
-      localStorage.setItem('access_token', response.access_token)
+      const response = await authService.login(credentials);
+      token.value = response.access_token;
+      localStorage.setItem("access_token", response.access_token);
 
       // Fetch current user data
-      await fetchCurrentUser()
+      await fetchCurrentUser();
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Login failed'
-      throw err
+      error.value = err.response?.data?.detail || "Login failed";
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   async function register(data: RegisterRequest) {
     try {
-      loading.value = true
-      error.value = null
+      loading.value = true;
+      error.value = null;
 
-      await authService.register(data)
+      await authService.register(data);
 
       // Auto login after registration
       await login({
         username: data.username,
-        password: data.password
-      })
+        password: data.password,
+      });
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Registration failed'
-      throw err
+      error.value = err.response?.data?.detail || "Registration failed";
+      throw err;
     } finally {
-      loading.value = false
+      loading.value = false;
     }
   }
 
   async function fetchCurrentUser() {
     try {
-      user.value = await authService.getCurrentUser()
+      user.value = await authService.getCurrentUser();
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to fetch user'
-      logout()
-      throw err
+      error.value = err.response?.data?.detail || "Failed to fetch user";
+      logout();
+      throw err;
     }
   }
 
-  function logout() {
-    user.value = null
-    token.value = null
-    localStorage.removeItem('access_token')
+  async function logout() {
+    user.value = null;
+    token.value = null;
+    localStorage.removeItem("access_token");
+
+    // Clear workspace data
+    try {
+      const { useWorkspaceStore } = await import("./workspace");
+      const workspaceStore = useWorkspaceStore();
+      workspaceStore.clearWorkspace();
+    } catch (err) {
+      console.error("Failed to clear workspace on logout:", err);
+    }
   }
 
   async function initialize() {
     if (token.value) {
       try {
-        await fetchCurrentUser()
+        await fetchCurrentUser();
       } catch {
-        logout()
+        logout();
       }
     }
   }
@@ -91,6 +102,6 @@ export const useAuthStore = defineStore('auth', () => {
     register,
     logout,
     fetchCurrentUser,
-    initialize
-  }
-})
+    initialize,
+  };
+});
