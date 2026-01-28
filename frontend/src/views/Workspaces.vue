@@ -194,7 +194,7 @@ const navigateToWorkspace = async (workspace: Workspace) => {
 
 const handleCreate = async () => {
   try {
-    await workspaceStore.createWorkspace(formData.value as any);
+    await workspaceStore.createWorkspace(formData.value as Workspace);
     showCreateModal.value = false;
     formData.value = {
       name: "",
