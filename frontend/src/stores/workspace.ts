@@ -211,17 +211,34 @@ export const useWorkspaceStore = defineStore("workspace", () => {
   /**
    * Initialize workspace from localStorage
    * Should be called on app mount to restore last selected workspace
+   * If no workspace is saved, fetch all workspaces and auto-select the first one
    */
   async function initializeWorkspace() {
     const savedId = getSavedWorkspaceId();
     if (savedId && !currentWorkspace.value) {
       try {
         await fetchWorkspace(savedId);
+        return true; // Workspace restored from localStorage
       } catch (err) {
         console.error("Failed to restore workspace from localStorage:", err);
         clearSavedWorkspaceId();
       }
     }
+
+    // If no saved workspace, fetch all workspaces and auto-select first one
+    if (!currentWorkspace.value) {
+      try {
+        await fetchWorkspaces();
+        if (workspaces.value.length > 0) {
+          await fetchWorkspace(workspaces.value[0].id);
+          return true; // First workspace auto-selected
+        }
+      } catch (err) {
+        console.error("Failed to auto-select workspace:", err);
+      }
+    }
+
+    return false; // No workspace available
   }
 
   /**

@@ -129,7 +129,13 @@ router.beforeEach(
     if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
       next({ name: "login", query: { redirect: to.fullPath } });
     } else if (to.name === "login" && authStore.isAuthenticated) {
-      next({ name: "dashboard" });
+      // Redirect to appropriate dashboard based on current workspace type
+      const currentWorkspace = workspaceStore.currentWorkspace;
+      if (currentWorkspace?.workspace_type === "FIELD_OPERATIONS") {
+        next("/field");
+      } else {
+        next({ name: "dashboard" });
+      }
     } else if (
       to.meta.roles &&
       !to.meta.roles.includes(authStore.user?.role || "")
