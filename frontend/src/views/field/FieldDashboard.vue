@@ -296,12 +296,39 @@
       <div class="rounded-lg bg-white p-6 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
           <h2 class="text-lg font-semibold text-gray-900">Recent Activities</h2>
-          <router-link
-            to="/field/activities"
-            class="text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            View All →
-          </router-link>
+          <div class="flex items-center space-x-3">
+            <!-- View Toggle -->
+            <div class="inline-flex rounded-lg border border-gray-200 p-1">
+              <button
+                @click="viewMode = 'my'"
+                :class="[
+                  'rounded-md px-3 py-1.5 text-sm font-medium transition-all',
+                  viewMode === 'my'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                ]"
+              >
+                My Work
+              </button>
+              <button
+                @click="viewMode = 'team'"
+                :class="[
+                  'rounded-md px-3 py-1.5 text-sm font-medium transition-all',
+                  viewMode === 'team'
+                    ? 'bg-blue-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:text-gray-900'
+                ]"
+              >
+                Team
+              </button>
+            </div>
+            <router-link
+              to="/field/activities"
+              class="text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              View All →
+            </router-link>
+          </div>
         </div>
 
         <!-- Loading State -->
@@ -396,7 +423,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed, onMounted, watch } from "vue";
 import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
@@ -423,16 +450,18 @@ const loading = ref(false);
 const formLoading = ref(false);
 const showActivityForm = ref(false);
 const editingActivity = ref<any>(null);
+const viewMode = ref<'my' | 'team'>('team'); // Default to team view for collaboration
 
 const recentActivities = computed(() => {
   return activityStore.sortedActivities.slice(0, 5);
 });
 
-// Stats calculations
+// Stats calculations (always personal stats)
 const todayCount = computed(() => {
   const today = new Date().toISOString().split("T")[0];
-  return activityStore.activities.filter((a) => a.activity_date === today)
-    .length;
+  return activityStore.activities.filter(
+    (a) => a.activity_date === today && a.support_staff_id === currentUser.value?.id
+  ).length;
 });
 
 const weekCount = computed(() => {
@@ -440,7 +469,7 @@ const weekCount = computed(() => {
   const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
   return activityStore.activities.filter((a) => {
     const date = new Date(a.activity_date);
-    return date >= weekAgo && date <= now;
+    return date >= weekAgo && date <= now && a.support_staff_id === currentUser.value?.id;
   }).length;
 });
 
@@ -450,7 +479,7 @@ const weekHours = computed(() => {
   return activityStore.activities
     .filter((a) => {
       const date = new Date(a.activity_date);
-      return date >= weekAgo && date <= now;
+      return date >= weekAgo && date <= now && a.support_staff_id === currentUser.value?.id;
     })
     .reduce((sum, a) => sum + a.duration_hours, 0);
 });
@@ -460,7 +489,7 @@ const monthCount = computed(() => {
   const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   return activityStore.activities.filter((a) => {
     const date = new Date(a.activity_date);
-    return date >= monthAgo && date <= now;
+    return date >= monthAgo && date <= now && a.support_staff_id === currentUser.value?.id;
   }).length;
 });
 
@@ -475,10 +504,7 @@ const loadActivities = async () => {
       .split("T")[0];
     await activityStore.fetchActivities(currentWorkspaceId.value, {
       date_from: sevenDaysAgo,
-      support_staff_id:
-        currentUser.value?.role?.toUpperCase() === "TEAM_MEMBER"
-          ? currentUser.value?.id
-          : undefined,
+      support_staff_id: viewMode.value === 'my' ? currentUser.value?.id : undefined,
     });
   } catch (error) {
     console.error("Failed to load activities:", error);
@@ -541,6 +567,11 @@ const closeActivityForm = () => {
   showActivityForm.value = false;
   editingActivity.value = null;
 };
+
+// Watch for view mode changes and reload activities
+watch(viewMode, () => {
+  loadActivities();
+});
 
 onMounted(() => {
   loadActivities();

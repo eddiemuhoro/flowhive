@@ -41,6 +41,7 @@
       <ActivityList
         :activities="activityStore.activities"
         :workspace-id="currentWorkspaceId"
+        :workspace-members="currentWorkspace?.members || []"
         :loading="activityStore.loading"
         @view="viewActivity"
         @edit="editActivity"
@@ -206,7 +207,11 @@ const closeActivityForm = () => {
   editingActivity.value = null;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  // Load workspace to get members for staff filter
+  if (currentWorkspaceId.value && !currentWorkspace.value) {
+    await workspaceStore.fetchWorkspace(currentWorkspaceId.value);
+  }
   loadActivities();
 });
 </script>

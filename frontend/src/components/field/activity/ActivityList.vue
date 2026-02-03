@@ -5,7 +5,7 @@
   <div class="space-y-6">
     <!-- Filters -->
     <div class="rounded-lg bg-white p-4 shadow-sm">
-      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <!-- Date From -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1"
@@ -39,6 +39,26 @@
             placeholder="All categories"
             :allow-null="true"
           />
+        </div>
+
+        <!-- Staff Filter -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Staff Member</label
+          >
+          <select
+            v-model="filters.support_staff_id"
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          >
+            <option :value="undefined">All staff</option>
+            <option
+              v-for="member in workspaceMembers"
+              :key="member.user_id"
+              :value="member.user_id"
+            >
+              {{ member.full_name || member.username }}
+            </option>
+          </select>
         </div>
 
         <!-- Customer Search -->
@@ -163,10 +183,12 @@ import { ref, computed } from "vue";
 import ActivityCard from "./ActivityCard.vue";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
 import type { FieldActivity, FieldActivityFilters } from "@/types/field";
+import type { WorkspaceMember } from "@/types/workspace";
 
 interface Props {
   activities: FieldActivity[];
   workspaceId: number;
+  workspaceMembers?: WorkspaceMember[];
   loading?: boolean;
   hasMore?: boolean;
 }
@@ -180,6 +202,7 @@ interface Emits {
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  workspaceMembers: () => [],
   loading: false,
   hasMore: false,
 });
@@ -189,6 +212,7 @@ const emit = defineEmits<Emits>();
 const filters = ref<FieldActivityFilters>({
   date_from: undefined,
   date_to: undefined,
+  support_staff_id: undefined,
   task_category_id: undefined,
   customer_name: undefined,
 });
@@ -197,6 +221,7 @@ const hasActiveFilters = computed(() => {
   return !!(
     filters.value.date_from ||
     filters.value.date_to ||
+    filters.value.support_staff_id ||
     filters.value.task_category_id ||
     filters.value.customer_name
   );
@@ -251,6 +276,8 @@ const applyFilters = () => {
 
   if (filters.value.date_from) cleanFilters.date_from = filters.value.date_from;
   if (filters.value.date_to) cleanFilters.date_to = filters.value.date_to;
+  if (filters.value.support_staff_id)
+    cleanFilters.support_staff_id = filters.value.support_staff_id;
   if (filters.value.task_category_id)
     cleanFilters.task_category_id = filters.value.task_category_id;
   if (filters.value.customer_name?.trim())
@@ -263,6 +290,7 @@ const clearFilters = () => {
   filters.value = {
     date_from: undefined,
     date_to: undefined,
+    support_staff_id: undefined,
     task_category_id: undefined,
     customer_name: undefined,
   };
