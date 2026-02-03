@@ -18,6 +18,7 @@ from app.schemas.field_activity import (
     FieldActivityPhotoResponse
 )
 from app.utils.auth import get_current_active_user, require_role
+from app.utils.sanitizer import sanitize_html
 from app.config import settings
 
 router = APIRouter()
@@ -53,8 +54,15 @@ async def create_field_activity(
                 detail="Invalid task category for this workspace"
             )
 
+    # Sanitize HTML content
+    activity_dict = activity_data.model_dump()
+    if activity_dict.get('task_description'):
+        activity_dict['task_description'] = sanitize_html(activity_dict['task_description'])
+    if activity_dict.get('remarks'):
+        activity_dict['remarks'] = sanitize_html(activity_dict['remarks'])
+
     activity = FieldActivity(
-        **activity_data.model_dump(),
+        **activity_dict,
         created_by=current_user.id
     )
     db.add(activity)
@@ -97,16 +105,16 @@ async def get_workspace_field_activities(
 
     if date_from:
         query = query.filter(FieldActivity.activity_date >= date_from)
-    
+
     if date_to:
         query = query.filter(FieldActivity.activity_date <= date_to)
-    
+
     if support_staff_id:
         query = query.filter(FieldActivity.support_staff_id == support_staff_id)
-    
+
     if task_category_id:
         query = query.filter(FieldActivity.task_category_id == task_category_id)
-    
+
     if customer_name:
         query = query.filter(FieldActivity.customer_name.ilike(f"%{customer_name}%"))
 
@@ -130,7 +138,7 @@ async def get_field_activity(
 ):
     """Get a specific field activity with photos"""
     activity = db.query(FieldActivity).filter(FieldActivity.id == activity_id).first()
-    
+
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -167,7 +175,7 @@ async def update_field_activity(
 ):
     """Update a field activity"""
     activity = db.query(FieldActivity).filter(FieldActivity.id == activity_id).first()
-    
+
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -197,6 +205,13 @@ async def update_field_activity(
 
     # Update activity fields
     update_data = activity_data.model_dump(exclude_unset=True)
+
+    # Sanitize HTML content if present
+    if 'task_description' in update_data and update_data['task_description']:
+        update_data['task_description'] = sanitize_html(update_data['task_description'])
+    if 'remarks' in update_data and update_data['remarks']:
+        update_data['remarks'] = sanitize_html(update_data['remarks'])
+
     for field, value in update_data.items():
         setattr(activity, field, value)
 
@@ -220,7 +235,7 @@ async def delete_field_activity(
 ):
     """Delete a field activity"""
     activity = db.query(FieldActivity).filter(FieldActivity.id == activity_id).first()
-    
+
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -289,12 +304,12 @@ async def get_field_activity_analytics(
         func.count(FieldActivity.id).label('activity_count')
     ).join(FieldActivity, FieldActivity.support_staff_id == User.id)\
      .filter(FieldActivity.workspace_id == workspace_id)
-    
+
     if date_from:
         hours_by_staff = hours_by_staff.filter(FieldActivity.activity_date >= date_from)
     if date_to:
         hours_by_staff = hours_by_staff.filter(FieldActivity.activity_date <= date_to)
-    
+
     hours_by_staff = hours_by_staff.group_by(User.id, User.full_name, User.username).all()
 
     # Activities by category
@@ -303,12 +318,12 @@ async def get_field_activity_analytics(
         func.count(FieldActivity.id).label('count')
     ).join(FieldActivity, FieldActivity.task_category_id == TaskCategory.id)\
      .filter(FieldActivity.workspace_id == workspace_id)
-    
+
     if date_from:
         activities_by_category = activities_by_category.filter(FieldActivity.activity_date >= date_from)
     if date_to:
         activities_by_category = activities_by_category.filter(FieldActivity.activity_date <= date_to)
-    
+
     activities_by_category = activities_by_category.group_by(TaskCategory.title).all()
 
     # Total activities
@@ -344,7 +359,7 @@ async def upload_field_activity_photo(
     """Upload a photo for a field activity"""
     # Get activity
     activity = db.query(FieldActivity).filter(FieldActivity.id == activity_id).first()
-    
+
     if not activity:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -385,7 +400,7 @@ async def upload_field_activity_photo(
     file_extension = os.path.splitext(file.filename)[1]
     unique_filename = f"{uuid.uuid4()}{file_extension}"
     file_path = os.path.join("uploads", "field_photos", unique_filename)
-    
+
     # Ensure directory exists
     os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
@@ -402,7 +417,7 @@ async def upload_field_activity_photo(
         mime_type=file.content_type,
         uploaded_by=current_user.id
     )
-    
+
     db.add(photo)
     db.commit()
     db.refresh(photo)
@@ -423,7 +438,7 @@ async def delete_field_activity_photo(
         FieldActivityPhoto.id == photo_id,
         FieldActivityPhoto.field_activity_id == activity_id
     ).first()
-    
+
     if not photo:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
