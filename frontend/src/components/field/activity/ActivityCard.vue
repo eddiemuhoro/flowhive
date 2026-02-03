@@ -108,9 +108,7 @@
       v-if="showDescription && activity.task_description"
       class="mt-3 border-t pt-3"
     >
-      <p class="text-sm text-gray-700 line-clamp-2">
-        {{ activity.task_description }}
-      </p>
+      <div class="prose prose-sm text-sm text-gray-700 line-clamp-2" v-html="activity.task_description"></div>
     </div>
 
     <!-- Customer Rep -->

@@ -153,17 +153,13 @@
           <!-- Task Description -->
           <div class="mt-6 border-t pt-6">
             <h3 class="text-sm font-medium text-gray-500">Task Description</h3>
-            <p class="mt-2 whitespace-pre-wrap text-base text-gray-900">
-              {{ activity.task_description }}
-            </p>
+            <div class="prose prose-sm mt-2 max-w-none text-base text-gray-900" v-html="activity.task_description"></div>
           </div>
 
           <!-- Remarks -->
           <div v-if="activity.remarks" class="mt-6 border-t pt-6">
             <h3 class="text-sm font-medium text-gray-500">Remarks</h3>
-            <p class="mt-2 whitespace-pre-wrap text-base text-gray-900">
-              {{ activity.remarks }}
-            </p>
+            <div class="prose prose-sm mt-2 max-w-none text-base text-gray-900" v-html="activity.remarks"></div>
           </div>
 
           <!-- Metadata -->

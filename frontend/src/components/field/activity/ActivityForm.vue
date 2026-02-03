@@ -145,30 +145,24 @@
       <label class="block text-sm font-medium text-gray-700 mb-1">
         Task Description <span class="text-red-500">*</span>
       </label>
-      <textarea
+      <RichTextEditor
         v-model="formData.task_description"
-        required
-        rows="3"
-        placeholder="Detailed description of work performed"
-        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        :class="{ 'border-red-300': errors.task_description }"
-      ></textarea>
-      <p v-if="errors.task_description" class="mt-1 text-sm text-red-600">
-        {{ errors.task_description }}
-      </p>
+        placeholder="Detailed description of work performed (you can format text, add lists, headings, etc.)"
+        :error="errors.task_description"
+        min-height="200px"
+      />
     </div>
 
     <!-- Remarks -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Remarks
+        Remarks (Optional)
       </label>
-      <textarea
+      <RichTextEditor
         v-model="formData.remarks"
-        rows="2"
         placeholder="Additional notes or observations"
-        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-      ></textarea>
+        min-height="60px"
+      />
     </div>
 
     <!-- Customer Rep -->
@@ -217,6 +211,7 @@ import { ref, computed, watch, onMounted } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
+import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import type {
   FieldActivityCreate,
   FieldActivityUpdate,
@@ -334,7 +329,12 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (!formData.value.task_description?.trim()) {
+  // Check if task_description has content (accounting for HTML tags)
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = formData.value.task_description || '';
+  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+  if (!textContent.trim()) {
     errors.value.task_description = "Task description is required";
     isValid = false;
   }
