@@ -84,6 +84,7 @@ async def get_workspace_field_activities(
     support_staff_id: Optional[int] = Query(None, description="Filter by staff member"),
     task_category_id: Optional[int] = Query(None, description="Filter by category"),
     customer_name: Optional[str] = Query(None, description="Search customer name"),
+    search: Optional[str] = Query(None, description="Search in task description"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -117,6 +118,9 @@ async def get_workspace_field_activities(
 
     if customer_name:
         query = query.filter(FieldActivity.customer_name.ilike(f"%{customer_name}%"))
+
+    if search:
+        query = query.filter(FieldActivity.task_description.ilike(f"%{search}%"))
 
     activities = query.order_by(FieldActivity.activity_date.desc(), FieldActivity.start_time.desc()).all()
 

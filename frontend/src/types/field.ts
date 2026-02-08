@@ -143,4 +143,5 @@ export interface FieldActivityFilters {
   support_staff_id?: number;
   task_category_id?: number;
   customer_name?: string;
+  search?: string; // Search in task_description field
 }

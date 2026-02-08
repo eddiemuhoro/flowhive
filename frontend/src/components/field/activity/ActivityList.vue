@@ -73,6 +73,22 @@
             class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
           />
         </div>
+
+        <!-- Description Search -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1"
+            >Search in Description</label
+          >
+          <input
+            v-model="filters.search"
+            type="text"
+            placeholder="e.g., Radmin, issue, solution..."
+            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+          />
+          <p class="mt-1 text-xs text-gray-500">
+            Find activities by keywords in description
+          </p>
+        </div>
       </div>
 
       <!-- Filter Actions -->
@@ -215,6 +231,7 @@ const filters = ref<FieldActivityFilters>({
   support_staff_id: undefined,
   task_category_id: undefined,
   customer_name: undefined,
+  search: undefined,
 });
 
 const hasActiveFilters = computed(() => {
@@ -223,7 +240,8 @@ const hasActiveFilters = computed(() => {
     filters.value.date_to ||
     filters.value.support_staff_id ||
     filters.value.task_category_id ||
-    filters.value.customer_name
+    filters.value.customer_name ||
+    filters.value.search
   );
 });
 
@@ -282,6 +300,8 @@ const applyFilters = () => {
     cleanFilters.task_category_id = filters.value.task_category_id;
   if (filters.value.customer_name?.trim())
     cleanFilters.customer_name = filters.value.customer_name.trim();
+  if (filters.value.search?.trim())
+    cleanFilters.search = filters.value.search.trim();
 
   emit("filter", cleanFilters);
 };
@@ -293,6 +313,7 @@ const clearFilters = () => {
     support_staff_id: undefined,
     task_category_id: undefined,
     customer_name: undefined,
+    search: undefined,
   };
   emit("filter", {});
 };
