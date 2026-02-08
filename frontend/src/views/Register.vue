@@ -115,7 +115,7 @@ const formData = ref({
 const handleSubmit = async () => {
   try {
     await authStore.register(formData.value)
-    router.push('/')
+    router.push('/field')
   } catch (error) {
     // Error is handled in the store
   }
