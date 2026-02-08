@@ -1,0 +1,26 @@
+<svg width="180" height="180" viewBox="0 0 180 180" xmlns="http://www.w3.org/2000/svg">
+  <rect width="180" height="180" fill="#4F46E5" rx="40"/>
+  <g transform="translate(45, 45)">
+    <!-- Hexagon shape for "hive" -->
+    <path d="M45 8 L82 26 L82 63 L45 82 L8 63 L8 26 Z" 
+          fill="none" 
+          stroke="#FCD34D" 
+          stroke-width="4"/>
+    <!-- Flow lines -->
+    <path d="M19 33 L33 39 L47 33 L61 39 L71 33" 
+          fill="none" 
+          stroke="#FCD34D" 
+          stroke-width="3" 
+          stroke-linecap="round"/>
+    <path d="M19 47 L33 53 L47 47 L61 53 L71 47" 
+          fill="none" 
+          stroke="#FCD34D" 
+          stroke-width="3" 
+          stroke-linecap="round"/>
+    <path d="M19 61 L33 67 L47 61 L61 67 L71 61" 
+          fill="none" 
+          stroke="#FCD34D" 
+          stroke-width="3" 
+          stroke-linecap="round"/>
+  </g>
+</svg>
