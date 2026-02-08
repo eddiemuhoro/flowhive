@@ -22,6 +22,18 @@ const router = createRouter({
       component: () => import("@/views/Register.vue"),
       meta: { requiresAuth: false },
     },
+    {
+      path: "/forgot-password",
+      name: "forgot-password",
+      component: () => import("@/views/ForgotPassword.vue"),
+      meta: { requiresAuth: false },
+    },
+    {
+      path: "/reset-password",
+      name: "reset-password",
+      component: () => import("@/views/ResetPassword.vue"),
+      meta: { requiresAuth: false },
+    },
     // Field Operations Routes
     {
       path: "/field",
