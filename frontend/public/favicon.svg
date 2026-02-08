@@ -2,25 +2,25 @@
   <rect width="32" height="32" fill="#4F46E5" rx="4"/>
   <g transform="translate(8, 8)">
     <!-- Hexagon shape for "hive" -->
-    <path d="M8 1 L15 5 L15 11 L8 15 L1 11 L1 5 Z" 
-          fill="none" 
-          stroke="#FCD34D" 
+    <path d="M8 1 L15 5 L15 11 L8 15 L1 11 L1 5 Z"
+          fill="none"
+          stroke="#FCD34D"
           stroke-width="1"/>
     <!-- Flow lines -->
-    <path d="M3 6 L6 7 L8 6 L11 7 L13 6" 
-          fill="none" 
-          stroke="#FCD34D" 
-          stroke-width="1" 
+    <path d="M3 6 L6 7 L8 6 L11 7 L13 6"
+          fill="none"
+          stroke="#FCD34D"
+          stroke-width="1"
           stroke-linecap="round"/>
-    <path d="M3 8 L6 9 L8 8 L11 9 L13 8" 
-          fill="none" 
-          stroke="#FCD34D" 
-          stroke-width="1" 
+    <path d="M3 8 L6 9 L8 8 L11 9 L13 8"
+          fill="none"
+          stroke="#FCD34D"
+          stroke-width="1"
           stroke-linecap="round"/>
-    <path d="M3 10 L6 11 L8 10 L11 11 L13 10" 
-          fill="none" 
-          stroke="#FCD34D" 
-          stroke-width="1" 
+    <path d="M3 10 L6 11 L8 10 L11 11 L13 10"
+          fill="none"
+          stroke="#FCD34D"
+          stroke-width="1"
           stroke-linecap="round"/>
   </g>
 </svg>

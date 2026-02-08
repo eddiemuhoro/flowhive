@@ -13,7 +13,7 @@ export function usePWA() {
   } = useRegisterSW({
     onRegistered(registration: ServiceWorkerRegistration | undefined) {
       console.log('Service Worker registered:', registration);
-      
+
       // Check for updates every hour
       setInterval(() => {
         registration?.update();
