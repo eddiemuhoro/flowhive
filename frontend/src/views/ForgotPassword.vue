@@ -128,7 +128,13 @@ async function handleSubmit() {
 
     success.value = true
     successMessage.value = response.message
-    resetLink.value = response.reset_link
+    
+    // Build reset link using current origin (works in dev and production)
+    if (response.reset_token) {
+      resetLink.value = `${window.location.origin}/reset-password?token=${response.reset_token}`
+    } else {
+      resetLink.value = null
+    }
   } catch (err: any) {
     error.value = err.response?.data?.detail || 'Failed to generate reset link. Please try again.'
   } finally {
