@@ -49,13 +49,23 @@
           </button>
         </div>
 
-        <div class="text-sm text-center">
-          <RouterLink
-            to="/register"
-            class="font-medium text-primary-600 hover:text-primary-500"
-          >
-            Don't have an account? Sign up
-          </RouterLink>
+        <div class="flex items-center justify-between">
+          <div class="text-sm">
+            <RouterLink
+              to="/forgot-password"
+              class="font-medium text-primary-600 hover:text-primary-500"
+            >
+              Forgot your password?
+            </RouterLink>
+          </div>
+          <div class="text-sm">
+            <RouterLink
+              to="/register"
+              class="font-medium text-primary-600 hover:text-primary-500"
+            >
+              Sign up
+            </RouterLink>
+          </div>
         </div>
       </form>
     </div>
@@ -86,10 +96,10 @@ const handleSubmit = async () => {
 
     // Redirect based on workspace type
     const currentWorkspace = workspaceStore.currentWorkspace;
-    if (currentWorkspace?.workspace_type === "FIELD_OPERATIONS") {
-      router.push("/field");
-    } else {
+    if (currentWorkspace?.workspace_type === "PROJECT_MANAGEMENT") {
       router.push("/");
+    } else {
+      router.push("/field");
     }
   } catch (error) {
     // Error is handled in the store
