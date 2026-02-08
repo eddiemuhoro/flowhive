@@ -118,15 +118,9 @@ async def forgot_password(
 
     db.commit()
 
-    # Get frontend URL from environment
-    frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-
-    # Create reset link
-    reset_link = f"{frontend_url}/reset-password?token={reset_token}"
-
     return {
         "message": "Password reset link generated successfully.",
-        "reset_link": reset_link
+        "reset_token": reset_token
     }
 
 
