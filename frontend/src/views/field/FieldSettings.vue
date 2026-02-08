@@ -285,7 +285,22 @@
           </div>
 
           <form @submit.prevent="handleCategorySubmit" class="space-y-4">
-            <!-- Name -->
+            <!-- Title -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Display Title <span class="text-red-500">*</span>
+              </label>
+              <input
+                v-model="categoryForm.title"
+                @input="autoGenerateSlug"
+                type="text"
+                required
+                placeholder="e.g., Installation, Maintenance"
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              />
+            </div>
+
+            <!-- Name (Slug) - Auto-generated -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">
                 Name (slug) <span class="text-red-500">*</span>
@@ -298,22 +313,8 @@
                 class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
               />
               <p class="mt-1 text-xs text-gray-500">
-                Lowercase, no spaces (use underscores)
+                Auto-generated from title (you can edit if needed)
               </p>
-            </div>
-
-            <!-- Title -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">
-                Display Title <span class="text-red-500">*</span>
-              </label>
-              <input
-                v-model="categoryForm.title"
-                type="text"
-                required
-                placeholder="e.g., Installation, Maintenance"
-                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              />
             </div>
 
             <!-- Description -->
@@ -633,6 +634,16 @@ const activateCategory = async (category: TaskCategory) => {
       error.response?.data?.detail ||
         "Failed to activate category. Please try again.",
     );
+  }
+};
+
+const autoGenerateSlug = () => {
+  // Only auto-generate if not editing an existing category
+  if (!editingCategory.value && categoryForm.value.title) {
+    categoryForm.value.name = categoryForm.value.title
+      .toLowerCase()
+      .replace(/\s+/g, '_')
+      .replace(/[^a-z0-9_]/g, '');
   }
 };
 
