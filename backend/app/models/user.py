@@ -22,6 +22,8 @@ class User(Base):
     role = Column(SQLEnum(UserRole), default=UserRole.TEAM_MEMBER, nullable=False)
     is_active = Column(Boolean, default=True)
     avatar_url = Column(String, nullable=True)
+    reset_token = Column(String, nullable=True)
+    reset_token_expires = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
