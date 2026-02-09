@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance } from "axios";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api";
+const API_URL =
+  import.meta.env.VITE_API_URL || "https://flowhive-sage.vercel.app/api";
 
 class ApiClient {
   private client: AxiosInstance;
