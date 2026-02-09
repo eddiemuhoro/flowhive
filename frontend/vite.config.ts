@@ -13,7 +13,8 @@ export default defineConfig({
       manifest: {
         name: "Flowhive - Productivity Platform",
         short_name: "Flowhive",
-        description: "All-in-one productivity platform for task management, field operations, and team collaboration",
+        description:
+          "All-in-one productivity platform for task management, field operations, and team collaboration",
         theme_color: "#4F46E5",
         background_color: "#ffffff",
         display: "standalone",
@@ -40,6 +41,7 @@ export default defineConfig({
       workbox: {
         cleanupOutdatedCaches: true,
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB (for vue-pdf-embed)
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/api\..*/i,
