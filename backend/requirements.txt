@@ -16,3 +16,4 @@ aiofiles==23.2.1
 python-dateutil==2.8.2
 mangum==0.17.0
 bleach>=6.1.0
+cloudinary>=1.41.0
