@@ -2,7 +2,7 @@ from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
-from app.models.user import User
+from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember
 from app.schemas.workspace import (
     WorkspaceCreate,
@@ -198,10 +198,11 @@ async def add_workspace_member(
             detail="Workspace not found"
         )
 
-    if workspace.owner_id != current_user.id:
+    # Allow workspace owner, managers, and executives to add members
+    if workspace.owner_id != current_user.id and current_user.role not in [UserRole.MANAGER, UserRole.EXECUTIVE]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Only workspace owner can add members"
+            detail="Only workspace owner, managers, and executives can add members"
         )
 
     # Check if user exists
