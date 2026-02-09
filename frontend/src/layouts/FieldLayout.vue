@@ -423,6 +423,11 @@ const navItems = computed(() => {
       label: "Activity Log",
       icon: ActivityIcon,
     },
+    {
+      path: "/field/minutes",
+      label: "Minutes",
+      icon: ActivityIcon,
+    },
   ];
 
   if (canManage.value) {

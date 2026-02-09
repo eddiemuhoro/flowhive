@@ -56,6 +56,11 @@ const router = createRouter({
           component: () => import("@/views/field/FieldActivityDetail.vue"),
         },
         {
+          path: "minutes",
+          name: "field-minutes",
+          component: () => import("@/views/field/FieldMinutes.vue"),
+        },
+        {
           path: "analytics",
           name: "field-analytics",
           component: () => import("@/views/field/FieldAnalytics.vue"),
