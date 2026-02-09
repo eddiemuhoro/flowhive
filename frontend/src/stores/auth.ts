@@ -84,8 +84,15 @@ export const useAuthStore = defineStore("auth", () => {
     if (token.value) {
       try {
         await fetchCurrentUser();
-      } catch {
-        logout();
+      } catch (err: any) {
+        // Only logout on authentication errors (401), not network errors
+        if (err.response?.status === 401) {
+          console.log("Token expired or invalid, logging out");
+          logout();
+        } else {
+          console.error("Failed to fetch user, but keeping token:", err);
+          // Keep the token, will retry on next navigation
+        }
       }
     }
   }
