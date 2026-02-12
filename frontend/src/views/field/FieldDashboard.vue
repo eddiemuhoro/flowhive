@@ -136,31 +136,7 @@
             <p class="mt-1 text-xs text-gray-500">Activities</p>
           </div>
         </div>
-        <div class="rounded-lg bg-white p-4 shadow-sm">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-sm font-medium text-gray-600">This Month</p>
-              <p class="mt-2 text-3xl font-bold text-gray-900">
-                {{ monthCount }}
-              </p>
-            </div>
-            <div class="rounded-full bg-orange-100 p-3">
-              <svg
-                class="h-6 w-6 text-orange-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"
-                />
-              </svg>
-            </div>
-          </div>
-        </div>
+
       </div>
 
       <!-- Quick Actions -->
