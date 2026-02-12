@@ -39,25 +39,16 @@ export default defineConfig({
         screenshots: [],
       },
       workbox: {
+        // Minimal service worker - only handles updates, no caching
         cleanupOutdatedCaches: true,
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
-        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // 5 MB (for vue-pdf-embed)
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\..*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "api-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60, // 1 hour
-              },
-              cacheableResponse: {
-                statuses: [0, 200],
-              },
-            },
-          },
-        ],
+        clientsClaim: true,
+        skipWaiting: true,
+        // Don't cache anything - users need to be online
+        globPatterns: ['manifest.webmanifest'],
+        // No runtime caching - all requests go to network
+        runtimeCaching: [],
+        // Reduce service worker size
+        navigationPreload: false,
       },
       devOptions: {
         enabled: true,
@@ -72,7 +63,7 @@ export default defineConfig({
   },
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    port: 5177,
     proxy: {
       "/api": {
         target: "http://localhost:8000",
