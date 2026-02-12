@@ -62,6 +62,18 @@
               >
                 Inactive
               </span>
+              <!-- Role Badge -->
+              <span
+                class="rounded-full px-2 py-0.5 text-xs font-medium"
+                :class="{
+                  'bg-green-100 text-green-800': category.required_role === 'team_member',
+                  'bg-blue-100 text-blue-800': category.required_role === 'manager',
+                  'bg-purple-100 text-purple-800': category.required_role === 'executive'
+                }"
+              >
+                {{ category.required_role === 'team_member' ? 'Everyone' :
+                   category.required_role === 'manager' ? 'Manager+' : 'Executive' }}
+              </span>
             </div>
             <p class="text-sm text-gray-500">{{ category.name }}</p>
             <p
@@ -258,6 +270,25 @@
               />
             </div>
 
+            <!-- Required Role -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Minimum Role Required <span class="text-red-500">*</span>
+              </label>
+              <select
+                v-model="categoryForm.required_role"
+                required
+                class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+              >
+                <option value="team_member">Team Member (Everyone can view)</option>
+                <option value="manager">Manager and above</option>
+                <option value="executive">Executive only</option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500">
+                Activities with this category will only be visible to users with this role or higher
+              </p>
+            </div>
+
             <!-- Actions -->
             <div class="flex items-center justify-end space-x-3 border-t pt-4">
               <button
@@ -316,6 +347,7 @@ const categoryForm = ref<TaskCategoryCreate>({
   color: "#3B82F6",
   icon: "",
   workspace_id: 0,
+  required_role: "team_member",
 });
 
 const allCategories = computed(() => {
@@ -347,6 +379,7 @@ const editCategory = (category: TaskCategory) => {
     color: category.color,
     icon: category.icon || "",
     workspace_id: props.workspaceId,
+    required_role: category.required_role,
   };
   showCategoryForm.value = true;
 };
@@ -436,6 +469,7 @@ const closeCategoryForm = () => {
     color: "#3B82F6",
     icon: "",
     workspace_id: 0,
+    required_role: "team_member",
   };
 };
 

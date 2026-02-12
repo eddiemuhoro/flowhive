@@ -21,6 +21,17 @@
       </p>
     </div>
 
+     <!-- Task Category -->
+    <CategorySelector
+      v-model="formData.task_category_id"
+      :workspace-id="workspaceId"
+      label="Task Category"
+      placeholder="Select task category"
+      :allow-null="true"
+      :error="errors.task_category_id"
+    />
+
+
     <!-- Date -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -130,15 +141,6 @@
       </p>
     </div>
 
-    <!-- Task Category -->
-    <CategorySelector
-      v-model="formData.task_category_id"
-      :workspace-id="workspaceId"
-      label="Task Category"
-      placeholder="Select task category"
-      :allow-null="true"
-      :error="errors.task_category_id"
-    />
 
     <!-- Task Description -->
     <div>

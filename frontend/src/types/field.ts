@@ -15,6 +15,7 @@ export interface TaskCategory {
   color: string;
   icon: string | null;
   workspace_id: number;
+  required_role: string;
   is_active: boolean;
   created_at: string;
   updated_at: string;
@@ -27,6 +28,7 @@ export interface TaskCategoryCreate {
   color: string;
   icon?: string;
   workspace_id: number;
+  required_role: string;
 }
 
 export interface TaskCategoryUpdate {
@@ -35,6 +37,7 @@ export interface TaskCategoryUpdate {
   description?: string;
   color?: string;
   icon?: string;
+  required_role?: string;
   is_active?: boolean;
 }
 
