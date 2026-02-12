@@ -34,7 +34,10 @@ async def create_task_category(
             detail="Not a member of this workspace"
         )
 
-    category = TaskCategory(**category_data.model_dump())
+    # Create category with created_by automatically set
+    category_dict = category_data.model_dump()
+    category_dict['created_by'] = current_user.id
+    category = TaskCategory(**category_dict)
     db.add(category)
     db.commit()
     db.refresh(category)
@@ -63,10 +66,10 @@ async def get_workspace_task_categories(
         )
 
     query = db.query(TaskCategory).filter(TaskCategory.workspace_id == workspace_id)
-    
+
     if not include_inactive:
         query = query.filter(TaskCategory.is_active == True)
-    
+
     categories = query.order_by(TaskCategory.name).all()
     return categories
 
@@ -79,7 +82,7 @@ async def get_task_category(
 ):
     """Get a specific task category"""
     category = db.query(TaskCategory).filter(TaskCategory.id == category_id).first()
-    
+
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -110,7 +113,7 @@ async def update_task_category(
 ):
     """Update a task category"""
     category = db.query(TaskCategory).filter(TaskCategory.id == category_id).first()
-    
+
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -148,7 +151,7 @@ async def delete_task_category(
 ):
     """Delete (deactivate) a task category"""
     category = db.query(TaskCategory).filter(TaskCategory.id == category_id).first()
-    
+
     if not category:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

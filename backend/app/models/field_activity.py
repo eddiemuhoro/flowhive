@@ -16,11 +16,13 @@ class TaskCategory(Base):
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
     required_role = Column(String, nullable=False, default="team_member")  # Minimum role required to view activities with this category
     is_active = Column(Boolean, default=True)  # Soft delete
+    created_by = Column(Integer, ForeignKey("users.id"), nullable=True)  # User who created the category
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     workspace = relationship("Workspace", backref="task_categories")
+    created_by_user = relationship("User", foreign_keys=[created_by])
     field_activities = relationship("FieldActivity", back_populates="task_category")
 
 

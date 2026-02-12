@@ -1,6 +1,18 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import datetime, date, time
+from app.schemas.user import UserResponse
+
+
+# Minimal user info for creator/updater fields
+class UserBasicInfo(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    avatar_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
 
 
 # TaskCategory Schemas
@@ -31,6 +43,8 @@ class TaskCategoryResponse(TaskCategoryBase):
     id: int
     workspace_id: int
     is_active: bool
+    created_by: Optional[int] = None
+    created_by_user: Optional[UserBasicInfo] = None
     created_at: datetime
     updated_at: datetime
 
