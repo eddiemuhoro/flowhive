@@ -10,6 +10,7 @@ class TaskCategoryBase(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+    required_role: str = "team_member"  # team_member, manager, or executive
 
 
 class TaskCategoryCreate(TaskCategoryBase):
@@ -22,6 +23,7 @@ class TaskCategoryUpdate(BaseModel):
     description: Optional[str] = None
     color: Optional[str] = None
     icon: Optional[str] = None
+    required_role: Optional[str] = None
     is_active: Optional[bool] = None
 
 
@@ -101,7 +103,7 @@ class FieldActivityResponse(FieldActivityBase):
     created_at: datetime
     updated_at: datetime
     duration_hours: float
-    
+
     # Nested objects
     support_staff_name: Optional[str] = None
     created_by_name: Optional[str] = None

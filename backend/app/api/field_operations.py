@@ -124,14 +124,31 @@ async def get_workspace_field_activities(
 
     activities = query.order_by(FieldActivity.activity_date.desc(), FieldActivity.start_time.desc()).all()
 
-    # Populate computed fields
+    # Filter activities based on user role and category required_role
+    # Role hierarchy: team_member < manager < executive
+    role_hierarchy = {"team_member": 0, "manager": 1, "executive": 2}
+    user_role_level = role_hierarchy.get(current_user.role, 0)
+
+    filtered_activities = []
     for activity in activities:
+        # If activity has no category, show it to everyone
+        if not activity.task_category_id:
+            filtered_activities.append(activity)
+        else:
+            # Check if user's role meets the category's required role
+            category = activity.task_category
+            category_required_level = role_hierarchy.get(category.required_role, 0)
+            if user_role_level >= category_required_level:
+                filtered_activities.append(activity)
+
+    # Populate computed fields
+    for activity in filtered_activities:
         activity.support_staff_name = activity.support_staff.full_name or activity.support_staff.username
         activity.created_by_name = activity.created_by_user.full_name or activity.created_by_user.username
         if activity.updated_by:
             activity.updated_by_name = activity.updated_by_user.full_name or activity.updated_by_user.username
 
-    return activities
+    return filtered_activities
 
 
 @router.get("/{activity_id}", response_model=FieldActivityDetailResponse)
@@ -160,6 +177,19 @@ async def get_field_activity(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this workspace"
         )
+
+    # Check if user has permission to view this activity based on category role
+    if activity.task_category_id:
+        category = activity.task_category
+        role_hierarchy = {"team_member": 0, "manager": 1, "executive": 2}
+        user_role_level = role_hierarchy.get(current_user.role, 0)
+        category_required_level = role_hierarchy.get(category.required_role, 0)
+
+        if user_role_level < category_required_level:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Insufficient permissions to view this activity"
+            )
 
     # Populate computed fields
     activity.support_staff_name = activity.support_staff.full_name or activity.support_staff.username

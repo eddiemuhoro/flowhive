@@ -14,6 +14,7 @@ class TaskCategory(Base):
     color = Column(String, nullable=True)  # Hex color for UI display
     icon = Column(String, nullable=True)  # Icon name/emoji for UI
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False, index=True)
+    required_role = Column(String, nullable=False, default="team_member")  # Minimum role required to view activities with this category
     is_active = Column(Boolean, default=True)  # Soft delete
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
@@ -59,11 +60,11 @@ class FieldActivity(Base):
             # Convert time objects to datetime for calculation
             start_dt = datetime.combine(datetime.today(), self.start_time)
             end_dt = datetime.combine(datetime.today(), self.end_time)
-            
+
             # Handle overnight shifts (end time is next day)
             if end_dt < start_dt:
                 end_dt = datetime.combine(datetime.today(), self.end_time) + timedelta(days=1)
-            
+
             duration = end_dt - start_dt
             return round(duration.total_seconds() / 3600, 2)  # Convert to hours with 2 decimal places
         return 0.0
