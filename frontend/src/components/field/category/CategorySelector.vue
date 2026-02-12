@@ -102,8 +102,36 @@
             {{ category.description }}
           </p>
         </div>
+
+        <!-- Quick Create Section -->
+        <div
+          v-if="!loading"
+          class="border-t border-gray-200 mt-1 pt-1"
+        >
+          <p class="px-3 py-1 text-xs text-gray-500">
+            Don't see the right category?
+          </p>
+          <button
+            type="button"
+            @click.stop="showCreateModal"
+            class="w-full text-left px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 flex items-center gap-2"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+            </svg>
+            Create New Category
+          </button>
+        </div>
       </div>
     </transition>
+
+    <!-- Create Category Modal -->
+    <CategoryQuickCreateModal
+      v-if="isCreateModalOpen"
+      :workspace-id="workspaceId"
+      @close="closeCreateModal"
+      @created="handleCategoryCreated"
+    />
 
     <!-- Error Message -->
     <p v-if="error" class="mt-1 text-sm text-red-600">{{ error }}</p>
@@ -114,6 +142,7 @@
 import { ref, computed, onMounted, onBeforeUnmount } from "vue";
 import { useTaskCategoryStore } from "@/stores/taskCategory";
 import CategoryBadge from "./CategoryBadge.vue";
+import CategoryQuickCreateModal from "./CategoryQuickCreateModal.vue";
 
 interface Props {
   modelValue: number | null | undefined;
@@ -143,6 +172,7 @@ const emit = defineEmits<Emits>();
 
 const categoryStore = useTaskCategoryStore();
 const isOpen = ref(false);
+const isCreateModalOpen = ref(false);
 
 const categories = computed(() => categoryStore.activeCategories);
 const loading = computed(() => categoryStore.loading);
@@ -161,6 +191,20 @@ const toggleDropdown = () => {
 const selectCategory = (categoryId: number | null) => {
   emit("update:modelValue", categoryId);
   isOpen.value = false;
+};
+
+const showCreateModal = () => {
+  isOpen.value = false;
+  isCreateModalOpen.value = true;
+};
+
+const closeCreateModal = () => {
+  isCreateModalOpen.value = false;
+};
+
+const handleCategoryCreated = (categoryId: number) => {
+  isCreateModalOpen.value = false;
+  emit("update:modelValue", categoryId);
 };
 
 const closeDropdown = (event: MouseEvent) => {

@@ -6,6 +6,14 @@ export enum WorkspaceType {
   FIELD_OPERATIONS = "FIELD_OPERATIONS",
 }
 
+// User basic info for creator/updater fields
+export interface UserBasicInfo {
+  id: number;
+  username: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
 // Task Category (manager-controlled categories)
 export interface TaskCategory {
   id: number;
@@ -17,6 +25,8 @@ export interface TaskCategory {
   workspace_id: number;
   required_role: string;
   is_active: boolean;
+  created_by: number | null;
+  created_by_user: UserBasicInfo | null;
   created_at: string;
   updated_at: string;
 }

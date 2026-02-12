@@ -82,6 +82,12 @@
             >
               {{ category.description }}
             </p>
+            <p
+              v-if="category.created_by_user"
+              class="mt-1 text-xs text-gray-500"
+            >
+              Created by: {{ category.created_by_user.full_name || category.created_by_user.username }}
+            </p>
           </div>
         </div>
 
