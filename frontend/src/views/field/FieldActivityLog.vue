@@ -9,9 +9,9 @@
         <div>
           <h1 class="text-2xl font-bold text-gray-900">Activity Log</h1>
           <p class="mt-1 text-sm text-gray-600">
-            {{ activityStore.activities.length }}
+            {{ activities.length }}
             {{
-              activityStore.activities.length === 1 ? "activity" : "activities"
+              activities.length === 1 ? "activity" : "activities"
             }}
             logged
           </p>
@@ -39,10 +39,10 @@
 
       <!-- Activity List with Filters -->
       <ActivityList
-        :activities="activityStore.activities"
+        :activities="activities"
         :workspace-id="currentWorkspaceId"
         :workspace-members="currentWorkspace?.members || []"
-        :loading="activityStore.loading"
+        :loading="isLoading"
         @view="viewActivity"
         @edit="editActivity"
         @delete="deleteActivity"
@@ -95,7 +95,7 @@
           <ActivityForm
             :workspace-id="currentWorkspaceId"
             :activity="editingActivity"
-            :loading="formLoading"
+            :loading="formLoading.value"
             @submit="handleActivitySubmit"
             @cancel="closeActivityForm"
           />
@@ -106,10 +106,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useFieldActivityStore } from "@/stores/fieldActivity";
+import {
+  useFieldActivities,
+  useCreateFieldActivity,
+  useUpdateFieldActivity,
+  useDeleteFieldActivity
+} from "@/composables/useFieldActivities";
 import ActivityList from "@/components/field/activity/ActivityList.vue";
 import ActivityForm from "@/components/field/activity/ActivityForm.vue";
 import type {
@@ -120,27 +125,28 @@ import type {
 
 const router = useRouter();
 const workspaceStore = useWorkspaceStore();
-const activityStore = useFieldActivityStore();
 
 const currentWorkspace = computed(() => workspaceStore.currentWorkspace);
 const currentWorkspaceId = computed(() => currentWorkspace.value?.id || 0);
 
 const showActivityForm = ref(false);
 const editingActivity = ref<any>(null);
-const formLoading = ref(false);
+const filters = ref<FieldActivityFilters>({});
 
-const loadActivities = async (filters?: FieldActivityFilters) => {
-  if (!currentWorkspaceId.value) return;
+// TanStack Query hooks
+const { data: activitiesData, isLoading } = useFieldActivities(
+  currentWorkspaceId,
+  filters
+);
+const activities = computed(() => activitiesData.value || []);
+const { mutate: createActivity, isPending: isCreating } = useCreateFieldActivity();
+const { mutate: updateActivity, isPending: isUpdating } = useUpdateFieldActivity();
+const { mutate: deleteActivityMutation } = useDeleteFieldActivity();
 
-  try {
-    await activityStore.fetchActivities(currentWorkspaceId.value, filters);
-  } catch (error) {
-    console.error("Failed to load activities:", error);
-  }
-};
+const formLoading = computed(() => isCreating || isUpdating);
 
-const handleFilter = async (filters: FieldActivityFilters) => {
-  await loadActivities(filters);
+const handleFilter = (newFilters: FieldActivityFilters) => {
+  filters.value = newFilters;
 };
 
 const viewActivity = (activityId: number) => {
@@ -148,7 +154,7 @@ const viewActivity = (activityId: number) => {
 };
 
 const editActivity = async (activityId: number) => {
-  const activity = activityStore.activities.find((a) => a.id === activityId);
+  const activity = activities.value.find((a: any) => a.id === activityId);
   if (activity) {
     editingActivity.value = activity;
     showActivityForm.value = true;
@@ -164,41 +170,52 @@ const deleteActivity = async (activityId: number) => {
     return;
   }
 
-  try {
-    await activityStore.deleteActivity(activityId, currentWorkspaceId.value);
-  } catch (error: any) {
-    console.error("Failed to delete activity:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to delete activity. Please try again.",
-    );
-  }
+  deleteActivityMutation(
+    { id: activityId, workspaceId: currentWorkspaceId.value },
+    {
+      onError: (error: any) => {
+        console.error("Failed to delete activity:", error);
+        alert(
+          error.response?.data?.detail ||
+            "Failed to delete activity. Please try again.",
+        );
+      },
+    }
+  );
 };
 
 const handleActivitySubmit = async (
   data: FieldActivityCreate | FieldActivityUpdate,
 ) => {
-  formLoading.value = true;
-  try {
-    if (editingActivity.value) {
-      await activityStore.updateActivity(
-        editingActivity.value.id,
-        currentWorkspaceId.value,
-        data as FieldActivityUpdate,
-      );
-    } else {
-      await activityStore.createActivity(data as FieldActivityCreate);
-    }
-    closeActivityForm();
-    await loadActivities(activityStore.filters);
-  } catch (error: any) {
-    console.error("Failed to save activity:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to save activity. Please try again.",
+  if (editingActivity.value) {
+    updateActivity(
+      {
+        id: editingActivity.value.id,
+        workspaceId: currentWorkspaceId.value,
+        data: data as FieldActivityUpdate,
+      },
+      {
+        onSuccess: () => closeActivityForm(),
+        onError: (error: any) => {
+          console.error("Failed to update activity:", error);
+          alert(
+            error.response?.data?.detail ||
+              "Failed to update activity. Please try again.",
+          );
+        },
+      }
     );
-  } finally {
-    formLoading.value = false;
+  } else {
+    createActivity(data as FieldActivityCreate, {
+      onSuccess: () => closeActivityForm(),
+      onError: (error: any) => {
+        console.error("Failed to create activity:", error);
+        alert(
+          error.response?.data?.detail ||
+            "Failed to create activity. Please try again.",
+        );
+      },
+    });
   }
 };
 
@@ -206,12 +223,4 @@ const closeActivityForm = () => {
   showActivityForm.value = false;
   editingActivity.value = null;
 };
-
-onMounted(async () => {
-  // Load workspace to get members for staff filter
-  if (currentWorkspaceId.value && !currentWorkspace.value) {
-    await workspaceStore.fetchWorkspace(currentWorkspaceId.value);
-  }
-  loadActivities();
-});
 </script>

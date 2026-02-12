@@ -261,7 +261,7 @@
             v-if="activity"
             :workspace-id="currentWorkspaceId"
             :activity="activity"
-            :loading="formLoading"
+            :loading="formLoading.value"
             @submit="handleActivityUpdate"
             @cancel="closeEditForm"
           />
@@ -272,11 +272,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { useFieldActivityStore } from "@/stores/fieldActivity";
+import {
+  useFieldActivity,
+  useUpdateFieldActivity,
+  useDeleteFieldActivity,
+  useUploadActivityPhoto,
+  useDeleteActivityPhoto,
+} from "@/composables/useFieldActivities";
 import CategoryBadge from "@/components/field/category/CategoryBadge.vue";
 import PhotoGallery from "@/components/field/photo/PhotoGallery.vue";
 import PhotoUpload from "@/components/field/photo/PhotoUpload.vue";
@@ -287,20 +293,27 @@ const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const workspaceStore = useWorkspaceStore();
-const activityStore = useFieldActivityStore();
 
 const activityId = computed(() => Number(route.params.id));
 const currentUser = computed(() => authStore.user);
 const currentWorkspace = computed(() => workspaceStore.currentWorkspace);
 const currentWorkspaceId = computed(() => currentWorkspace.value?.id || 0);
-const activity = computed(() => activityStore.currentActivity);
 
-const loading = ref(false);
-const formLoading = ref(false);
+// TanStack Query hooks
+const { data: activity, isLoading: loading } = useFieldActivity(
+  activityId.value,
+  currentWorkspaceId.value
+);
+const { mutate: updateActivity, isPending: isUpdating } = useUpdateFieldActivity();
+const { mutate: deleteActivityMutation } = useDeleteFieldActivity();
+const { mutate: uploadPhoto } = useUploadActivityPhoto();
+const { mutate: deletePhotoMutation } = useDeleteActivityPhoto();
+
 const showEditForm = ref(false);
 const showPhotoUpload = ref(false);
 const uploadingPhotos = ref(false);
 const photoUploadRef = ref<any>(null);
+const formLoading = computed(() => isUpdating);
 
 const canEdit = computed(() => {
   if (!activity.value || !currentUser.value) return false;
@@ -347,41 +360,26 @@ const formatDuration = (hours: number): string => {
   return minutes > 0 ? `${fullHours}h ${minutes}m` : `${fullHours} hours`;
 };
 
-const loadActivity = async () => {
-  loading.value = true;
-  try {
-    await activityStore.fetchActivity(
-      activityId.value,
-      currentWorkspaceId.value,
-    );
-  } catch (error) {
-    console.error("Failed to load activity:", error);
-  } finally {
-    loading.value = false;
-  }
-};
-
 const handleActivityUpdate = async (
   data: FieldActivityCreate | FieldActivityUpdate,
 ) => {
-  formLoading.value = true;
-  try {
-    await activityStore.updateActivity(
-      activityId.value,
-      currentWorkspaceId.value,
-      data as FieldActivityUpdate,
-    );
-    closeEditForm();
-    await loadActivity();
-  } catch (error: any) {
-    console.error("Failed to update activity:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to update activity. Please try again.",
-    );
-  } finally {
-    formLoading.value = false;
-  }
+  updateActivity(
+    {
+      id: activityId.value,
+      workspaceId: currentWorkspaceId.value,
+      data: data as FieldActivityUpdate,
+    },
+    {
+      onSuccess: () => closeEditForm(),
+      onError: (error: any) => {
+        console.error("Failed to update activity:", error);
+        alert(
+          error.response?.data?.detail ||
+            "Failed to update activity. Please try again.",
+        );
+      },
+    }
+  );
 };
 
 const handleDelete = async () => {
@@ -393,19 +391,19 @@ const handleDelete = async () => {
     return;
   }
 
-  try {
-    await activityStore.deleteActivity(
-      activityId.value,
-      currentWorkspaceId.value,
-    );
-    router.push("/field/activities");
-  } catch (error: any) {
-    console.error("Failed to delete activity:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to delete activity. Please try again.",
-    );
-  }
+  deleteActivityMutation(
+    { id: activityId.value, workspaceId: currentWorkspaceId.value },
+    {
+      onSuccess: () => router.push("/field/activities"),
+      onError: (error: any) => {
+        console.error("Failed to delete activity:", error);
+        alert(
+          error.response?.data?.detail ||
+            "Failed to delete activity. Please try again.",
+        );
+      },
+    }
+  );
 };
 
 const handlePhotoUpload = async (files: File[]) => {
@@ -413,15 +411,24 @@ const handlePhotoUpload = async (files: File[]) => {
 
   try {
     for (const file of files) {
-      await activityStore.uploadPhoto(
-        activityId.value,
-        currentWorkspaceId.value,
-        file,
-      );
-      photoUploadRef.value?.markAsUploaded(file.name);
+      await new Promise<void>((resolve, reject) => {
+        uploadPhoto(
+          {
+            activityId: activityId.value,
+            workspaceId: currentWorkspaceId.value,
+            file,
+          },
+          {
+            onSuccess: () => {
+              photoUploadRef.value?.markAsUploaded(file.name);
+              resolve();
+            },
+            onError: (error) => reject(error),
+          }
+        );
+      });
     }
     showPhotoUpload.value = false;
-    await loadActivity();
   } catch (error: any) {
     console.error("Failed to upload photos:", error);
     alert(
@@ -434,19 +441,22 @@ const handlePhotoUpload = async (files: File[]) => {
 };
 
 const handlePhotoDelete = async (photoId: number) => {
-  try {
-    await activityStore.deletePhoto(
-      activityId.value,
+  deletePhotoMutation(
+    {
+      activityId: activityId.value,
       photoId,
-      currentWorkspaceId.value,
-    );
-  } catch (error: any) {
-    console.error("Failed to delete photo:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to delete photo. Please try again.",
-    );
-  }
+      workspaceId: currentWorkspaceId.value,
+    },
+    {
+      onError: (error: any) => {
+        console.error("Failed to delete photo:", error);
+        alert(
+          error.response?.data?.detail ||
+            "Failed to delete photo. Please try again.",
+        );
+      },
+    }
+  );
 };
 
 const closeEditForm = () => {
@@ -456,8 +466,4 @@ const closeEditForm = () => {
 const goBack = () => {
   router.push("/field/activities");
 };
-
-onMounted(() => {
-  loadActivity();
-});
 </script>
