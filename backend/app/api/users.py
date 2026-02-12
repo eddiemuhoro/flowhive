@@ -81,6 +81,14 @@ async def update_user(
 
     # Update fields
     update_data = user_data.model_dump(exclude_unset=True)
+
+    # Only executives can change roles
+    if 'role' in update_data and current_user.role != UserRole.EXECUTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only executives can change user roles"
+        )
+
     for field, value in update_data.items():
         setattr(user, field, value)
 

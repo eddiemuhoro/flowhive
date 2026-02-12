@@ -22,7 +22,7 @@ export interface WorkspaceMember {
   user_id: number;
   username: string;
   email: string;
-  role: "owner" | "manager" | "member";
+  system_role: string;
   full_name?: string;
   avatar_url?: string;
   joined_at: string;

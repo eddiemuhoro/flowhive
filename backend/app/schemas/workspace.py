@@ -30,6 +30,7 @@ class WorkspaceMemberResponse(BaseModel):
     email: str
     full_name: Optional[str]
     avatar_url: Optional[str]
+    system_role: str
     joined_at: datetime
 
     class Config:

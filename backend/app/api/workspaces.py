@@ -95,6 +95,7 @@ async def get_workspace(
             "email": member.user.email,
             "full_name": member.user.full_name,
             "avatar_url": member.user.avatar_url,
+            "system_role": member.user.role,  # Use system user role instead of workspace role
             "joined_at": member.joined_at
         })
 
@@ -312,6 +313,7 @@ async def get_workspace_members(
                 "email": user.email,
                 "full_name": user.full_name,
                 "avatar_url": user.avatar_url,
+                "system_role": user.role,
                 "joined_at": member.joined_at
             })
 
