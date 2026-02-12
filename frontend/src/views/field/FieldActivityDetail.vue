@@ -325,13 +325,15 @@ const formatDate = (dateStr: string): string => {
 };
 
 const formatDateTime = (dateStr: string): string => {
-  const date = new Date(dateStr);
-  return date.toLocaleString("en-US", {
+  // Append 'Z' to indicate UTC timezone before parsing
+  const date = new Date(dateStr + 'Z');
+  return date.toLocaleString("en-KE", {
     month: "short",
     day: "numeric",
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    timeZone: "Africa/Nairobi"
   });
 };
 
