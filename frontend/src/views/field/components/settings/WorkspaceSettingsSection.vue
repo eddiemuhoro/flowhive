@@ -110,37 +110,37 @@ const handleUpdateWorkspace = async () => {
   }
 };
 
-const handleDeleteWorkspace = async () => {
-  const name = props.workspace?.name;
+// const handleDeleteWorkspace = async () => {
+//   const name = props.workspace?.name;
 
-  if (
-    !confirm(
-      `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone. All field activities, categories, and data will be permanently deleted.`
-    )
-  ) {
-    return;
-  }
+//   if (
+//     !confirm(
+//       `Are you sure you want to delete "${name}"?\n\nThis action cannot be undone. All field activities, categories, and data will be permanently deleted.`
+//     )
+//   ) {
+//     return;
+//   }
 
-  const confirmText = prompt(
-    `To confirm deletion, please type the workspace name: "${name}"`
-  );
+//   const confirmText = prompt(
+//     `To confirm deletion, please type the workspace name: "${name}"`
+//   );
 
-  if (confirmText !== name) {
-    alert("Workspace name doesn't match. Deletion cancelled.");
-    return;
-  }
+//   if (confirmText !== name) {
+//     alert("Workspace name doesn't match. Deletion cancelled.");
+//     return;
+//   }
 
-  if (!props.workspace?.id) return;
+//   if (!props.workspace?.id) return;
 
-  try {
-    await workspaceStore.deleteWorkspace(props.workspace.id);
-    alert("Workspace deleted successfully");
-  } catch (error: any) {
-    console.error("Failed to delete workspace:", error);
-    alert(
-      error.response?.data?.detail ||
-        "Failed to delete workspace. Please try again.",
-    );
-  }
-};
+//   try {
+//     await workspaceStore.deleteWorkspace(props.workspace.id);
+//     alert("Workspace deleted successfully");
+//   } catch (error: any) {
+//     console.error("Failed to delete workspace:", error);
+//     alert(
+//       error.response?.data?.detail ||
+//         "Failed to delete workspace. Please try again.",
+//     );
+//   }
+// };
 </script>

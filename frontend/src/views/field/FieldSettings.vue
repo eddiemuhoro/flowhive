@@ -44,7 +44,6 @@ import { computed } from "vue";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useAuthStore } from "@/stores/auth";
 import TaskCategoriesSection from "./components/settings/TaskCategoriesSection.vue";
-import TeamMembersSection from "./components/settings/TeamMembersSection.vue";
 import PermissionSettingsSection from "./components/settings/PermissionSettingsSection.vue";
 import WorkspaceSettingsSection from "./components/settings/WorkspaceSettingsSection.vue";
 import UserManagementSection from "./components/settings/UserManagementSection.vue";
