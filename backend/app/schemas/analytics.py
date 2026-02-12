@@ -3,6 +3,15 @@ from typing import List, Dict, Any, Optional
 from datetime import datetime
 
 
+class FieldActivityAnalytics(BaseModel):
+    total_activities: int
+    total_hours: float
+    activities_this_week: int
+    activities_this_month: int
+    top_staff: List[Dict[str, Any]] = []  # Top field staff by activity count
+    category_distribution: Dict[str, int] = {}  # Activities by category
+
+
 class TaskAnalytics(BaseModel):
     total_tasks: int
     completed_tasks: int
@@ -41,6 +50,7 @@ class WorkspaceAnalytics(BaseModel):
     active_members: int
     completion_rate: float
     projects: List[ProjectAnalytics] = []
+    field_activities: Optional[FieldActivityAnalytics] = None  # Field operations data
 
 
 class ExecutiveDashboard(BaseModel):

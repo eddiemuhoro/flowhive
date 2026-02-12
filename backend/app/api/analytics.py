@@ -8,12 +8,14 @@ from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember
 from app.models.project import Project
 from app.models.task import Task, TaskStatus, TaskPriority
+from app.models.field_activity import FieldActivity, TaskCategory
 from app.schemas.analytics import (
     TaskAnalytics,
     ProjectAnalytics,
     UserProductivity,
     WorkspaceAnalytics,
-    ExecutiveDashboard
+    ExecutiveDashboard,
+    FieldActivityAnalytics
 )
 from app.utils.auth import get_current_active_user, require_role
 
@@ -23,6 +25,91 @@ router = APIRouter()
 def calculate_completion_rate(completed: int, total: int) -> float:
     """Calculate completion rate as percentage"""
     return round((completed / total * 100) if total > 0 else 0, 2)
+
+
+def get_field_activity_analytics(db: Session, workspace_id: int) -> FieldActivityAnalytics:
+    """Get field activity analytics for a workspace"""
+    activities = db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id
+    )
+
+    total_activities = activities.count()
+
+    # Calculate total hours
+    all_activities = activities.all()
+    total_hours = sum([activity.duration_hours for activity in all_activities])
+
+    # Activities this week
+    now = datetime.utcnow()
+    week_start = now - timedelta(days=now.weekday())
+    activities_this_week = activities.filter(
+        FieldActivity.activity_date >= week_start.date()
+    ).count()
+
+    # Activities this month
+    month_start = now.replace(day=1)
+    activities_this_month = activities.filter(
+        FieldActivity.activity_date >= month_start.date()
+    ).count()
+
+    # Top staff by activity count
+    staff_stats = db.query(
+        User.id,
+        User.full_name,
+        User.username,
+        func.count(FieldActivity.id).label('activity_count')
+    ).join(
+        FieldActivity, FieldActivity.support_staff_id == User.id
+    ).filter(
+        FieldActivity.workspace_id == workspace_id
+    ).group_by(User.id, User.full_name, User.username).order_by(
+        func.count(FieldActivity.id).desc()
+    ).limit(5).all()
+
+    top_staff = [
+        {
+            "user_id": user_id,
+            "name": full_name or username,
+            "activity_count": count
+        }
+        for user_id, full_name, username, count in staff_stats
+    ]
+
+    # Category distribution
+    category_stats = db.query(
+        TaskCategory.title,
+        func.count(FieldActivity.id).label('count')
+    ).join(
+        FieldActivity, FieldActivity.task_category_id == TaskCategory.id
+    ).filter(
+        FieldActivity.workspace_id == workspace_id
+    ).group_by(TaskCategory.title).all()
+
+    category_distribution = {title: count for title, count in category_stats}
+
+    # Add uncategorized activities
+    uncategorized = activities.filter(FieldActivity.task_category_id.is_(None)).count()
+    if uncategorized > 0:
+        category_distribution["Uncategorized"] = uncategorized
+
+    return FieldActivityAnalytics(
+        total_activities=total_activities,
+        total_hours=round(total_hours, 2),
+        activities_this_week=activities_this_week,
+        activities_this_month=activities_this_month,
+        top_staff=top_staff,
+        category_distribution=category_distribution
+    )
+
+
+@router.get("/field-activities/overview", response_model=FieldActivityAnalytics)
+async def get_field_activity_analytics_endpoint(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get field activity analytics for a workspace"""
+    return get_field_activity_analytics(db, workspace_id)
 
 
 @router.get("/overview", response_model=TaskAnalytics)
@@ -115,6 +202,18 @@ async def get_user_productivity(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get user productivity metrics"""
+    #check is user is in the workspace if workspace_id is provided
+    if workspace_id:
+        membership = db.query(WorkspaceMember).filter(
+            WorkspaceMember.workspace_id == workspace_id,
+            WorkspaceMember.user_id == current_user.id
+        ).first()
+        if not membership:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Not a member of this workspace"
+            )
+
     if current_user.role not in [UserRole.MANAGER, UserRole.EXECUTIVE]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -227,6 +326,15 @@ async def get_executive_dashboard(
                 completion_rate=calculate_completion_rate(proj_completed, proj_total)
             ))
 
+        # Include field activities for this workspace
+        field_activity_count = db.query(FieldActivity).filter(
+            FieldActivity.workspace_id == workspace.id
+        ).count()
+
+        field_analytics = None
+        if field_activity_count > 0:
+            field_analytics = get_field_activity_analytics(db, workspace.id)
+
         workspace_analytics.append(WorkspaceAnalytics(
             workspace_id=workspace.id,
             workspace_name=workspace.name,
@@ -235,7 +343,8 @@ async def get_executive_dashboard(
             completed_tasks=ws_completed,
             active_members=active_members,
             completion_rate=calculate_completion_rate(ws_completed, ws_total),
-            projects=project_analytics
+            projects=project_analytics,
+            field_activities=field_analytics
         ))
 
     # Top performers (top 5)
