@@ -124,29 +124,20 @@ export interface FieldActivityDetail extends FieldActivity {
 
 // Analytics Types
 export interface StaffHoursAnalytics {
-  staff_id: number;
-  staff_name: string;
-  total_hours: number;
+  user_id: number;
+  name: string;
   activity_count: number;
 }
 
 export interface CategoryAnalytics {
-  category_id: number | null;
-  category_name: string;
-  category_title: string;
-  activity_count: number;
-  total_hours: number;
+  category: string;
+  count: number;
 }
 
 export interface FieldAnalytics {
   total_activities: number;
-  total_hours: number;
   hours_by_staff: StaffHoursAnalytics[];
   activities_by_category: CategoryAnalytics[];
-  date_range: {
-    start: string;
-    end: string;
-  };
 }
 
 // Filter Types

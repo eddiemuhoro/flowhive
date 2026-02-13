@@ -104,10 +104,9 @@ export const fieldActivityService = {
     dateTo?: string,
   ): Promise<FieldAnalytics> {
     const response = await apiClient.get<FieldAnalytics>(
-      "/field-activities/analytics",
+      `/field-activities/workspace/${workspaceId}/analytics`,
       {
         params: {
-          workspace_id: workspaceId,
           date_from: dateFrom,
           date_to: dateTo,
         },
