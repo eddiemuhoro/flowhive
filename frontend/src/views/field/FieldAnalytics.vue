@@ -170,7 +170,7 @@
         <!-- Top Staff -->
         <div class="bg-white shadow rounded-lg p-6">
           <h3 class="text-lg font-semibold text-gray-900 mb-4">
-            Top Performers
+            Top With Activities
           </h3>
           <div v-if="analytics.top_staff.length > 0" class="space-y-4">
             <div
