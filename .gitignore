@@ -66,4 +66,5 @@ htmlcov/
 # Uploads
 backend/uploads/*
 !backend/uploads/.gitkeep
+backend/test_cpanel_mysql.py
 
