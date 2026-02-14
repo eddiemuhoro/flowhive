@@ -21,7 +21,7 @@
       </p>
     </div>
 
-     <!-- Task Category -->
+    <!-- Task Category -->
     <CategorySelector
       v-model="formData.task_category_id"
       :workspace-id="workspaceId"
@@ -30,7 +30,6 @@
       :allow-null="true"
       :error="errors.task_category_id"
     />
-
 
     <!-- Date -->
     <div>
@@ -110,16 +109,67 @@
       <label class="block text-sm font-medium text-gray-700 mb-1">
         Customer Name <span class="text-red-500">*</span>
       </label>
-      <input
-        v-model="formData.customer_name"
-        type="text"
-        required
-        placeholder="Customer or company name"
-        class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        :class="{ 'border-red-300': errors.customer_name }"
-      />
+      <div class="relative">
+        <input
+          v-model="customerSearch"
+          @focus="showCustomerDropdown = true"
+          @input="handleCustomerSearch"
+          type="text"
+          required
+          placeholder="Search for customer..."
+          class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          :class="{ 'border-red-300': errors.customer_name }"
+        />
+        <!-- Dropdown List -->
+        <div
+          v-if="showCustomerDropdown && filteredCustomers.length > 0"
+          class="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto"
+        >
+          <button
+            v-for="customer in filteredCustomers"
+            :key="customer.id"
+            type="button"
+            @click="selectCustomer(customer)"
+            class="w-full text-left px-3 py-2 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none border-b border-gray-100 last:border-b-0"
+          >
+            <div class="font-medium text-gray-900">{{ customer.name }}</div>
+            <div class="text-xs text-gray-500 truncate">
+              {{ customer.address }}
+            </div>
+          </button>
+        </div>
+        <!-- Loading State -->
+        <div
+          v-if="loadingCustomers"
+          class="absolute right-3 top-2.5 text-gray-400"
+        >
+          <svg
+            class="animate-spin h-5 w-5"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              class="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              stroke-width="4"
+            ></circle>
+            <path
+              class="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+        </div>
+      </div>
       <p v-if="errors.customer_name" class="mt-1 text-sm text-red-600">
         {{ errors.customer_name }}
+      </p>
+      <p v-if="formData.customer_id" class="mt-1 text-xs text-gray-500">
+        Customer ID: {{ formData.customer_id }}
       </p>
     </div>
 
@@ -140,7 +190,6 @@
         {{ errors.location }}
       </p>
     </div>
-
 
     <!-- Task Description -->
     <div>
@@ -209,15 +258,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { customerService } from "@/services/customer.service";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import type {
   FieldActivityCreate,
   FieldActivityUpdate,
   FieldActivity,
+  Customer,
 } from "@/types/field";
 
 interface Props {
@@ -263,6 +314,7 @@ const formData = ref<FieldActivityCreate>({
   activity_date: today.value,
   start_time: "09:00",
   end_time: "17:00",
+  customer_id: null,
   customer_name: "",
   location: "",
   task_description: "",
@@ -272,6 +324,62 @@ const formData = ref<FieldActivityCreate>({
 });
 
 const errors = ref<Record<string, string>>({});
+
+// Customer search and selection
+const customers = ref<Customer[]>([]);
+const loadingCustomers = ref(false);
+const customerSearch = ref("");
+const showCustomerDropdown = ref(false);
+
+const filteredCustomers = computed(() => {
+  if (!customerSearch.value.trim()) {
+    return customers.value.slice(0, 50); // Show first 50 by default
+  }
+  const search = customerSearch.value.toLowerCase();
+  return customers.value
+    .filter(
+      (customer) =>
+        customer.name.toLowerCase().includes(search) ||
+        customer.address.toLowerCase().includes(search) ||
+        customer.clientid.includes(search),
+    )
+    .slice(0, 50); // Limit to 50 results
+});
+
+const selectCustomer = (customer: Customer) => {
+  formData.value.customer_id = customer.id;
+  formData.value.customer_name = customer.name;
+  customerSearch.value = customer.name;
+  showCustomerDropdown.value = false;
+};
+
+const handleCustomerSearch = () => {
+  showCustomerDropdown.value = true;
+  // Clear customer_id if user is typing (manual entry)
+  if (customerSearch.value !== formData.value.customer_name) {
+    formData.value.customer_id = null;
+    formData.value.customer_name = customerSearch.value;
+  }
+};
+
+const loadCustomers = async () => {
+  try {
+    loadingCustomers.value = true;
+    customers.value = await customerService.getCompanies();
+  } catch (error) {
+    console.error("Failed to load customers:", error);
+  } finally {
+    loadingCustomers.value = false;
+  }
+};
+
+// Close dropdown when clicking outside
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  if (!target.closest(".relative")) {
+    showCustomerDropdown.value = false;
+  }
+};
 
 // Load existing activity data if editing
 watch(
@@ -285,6 +393,7 @@ watch(
         activity_date: activity.activity_date,
         start_time: activity.start_time,
         end_time: activity.end_time,
+        customer_id: activity.customer_id,
         customer_name: activity.customer_name,
         location: activity.location,
         task_description: activity.task_description,
@@ -292,6 +401,7 @@ watch(
         remarks: activity.remarks,
         customer_rep: activity.customer_rep,
       };
+      customerSearch.value = activity.customer_name;
     }
   },
   { immediate: true },
@@ -332,9 +442,9 @@ const validateForm = (): boolean => {
   }
 
   // Check if task_description has content (accounting for HTML tags)
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = formData.value.task_description || '';
-  const textContent = tempDiv.textContent || tempDiv.innerText || '';
+  const tempDiv = document.createElement("div");
+  tempDiv.innerHTML = formData.value.task_description || "";
+  const textContent = tempDiv.textContent || tempDiv.innerText || "";
 
   if (!textContent.trim()) {
     errors.value.task_description = "Task description is required";
@@ -367,5 +477,16 @@ onMounted(async () => {
   if (canSelectStaff.value && workspaceMembers.value.length === 0) {
     await workspaceStore.fetchWorkspace(props.workspaceId);
   }
+
+  // Load customers
+  await loadCustomers();
+
+  // Add click outside listener
+  document.addEventListener("click", handleClickOutside);
+});
+
+onBeforeUnmount(() => {
+  // Remove click outside listener
+  document.removeEventListener("click", handleClickOutside);
 });
 </script>

@@ -6,6 +6,14 @@ export enum WorkspaceType {
   FIELD_OPERATIONS = "FIELD_OPERATIONS",
 }
 
+// Customer (from external SAJSoft API)
+export interface Customer {
+  id: string;
+  clientid: string;
+  name: string;
+  address: string;
+}
+
 // User basic info for creator/updater fields
 export interface UserBasicInfo {
   id: number;
@@ -73,6 +81,7 @@ export interface FieldActivity {
   activity_date: string; // YYYY-MM-DD
   start_time: string; // HH:MM:SS
   end_time: string; // HH:MM:SS
+  customer_id: string | null;
   customer_name: string;
   location: string;
   task_description: string;
@@ -96,6 +105,7 @@ export interface FieldActivityCreate {
   activity_date: string;
   start_time: string;
   end_time: string;
+  customer_id?: string | null;
   customer_name: string;
   location: string;
   task_description: string;
@@ -110,6 +120,7 @@ export interface FieldActivityUpdate {
   activity_date?: string;
   start_time?: string;
   end_time?: string;
+  customer_id?: string | null;
   customer_name?: string;
   location?: string;
   task_description?: string;
