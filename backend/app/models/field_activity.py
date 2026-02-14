@@ -36,6 +36,7 @@ class FieldActivity(Base):
     start_time = Column(Time, nullable=False)
     end_time = Column(Time, nullable=False)
     title = Column(String, nullable=False)  # Short summary of activity
+    customer_id = Column(String, nullable=True)  # External customer ID from SAJSoft
     customer_name = Column(String, nullable=False)
     location = Column(String, nullable=False)
     task_category_id = Column(Integer, ForeignKey("task_categories.id"), nullable=True, index=True)

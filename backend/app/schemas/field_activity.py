@@ -81,6 +81,7 @@ class FieldActivityBase(BaseModel):
     start_time: time
     end_time: time
     title: str
+    customer_id: Optional[str] = None
     customer_name: str
     location: str
     task_category_id: Optional[int] = None
@@ -99,6 +100,7 @@ class FieldActivityUpdate(BaseModel):
     start_time: Optional[time] = None
     end_time: Optional[time] = None
     title: Optional[str] = None
+    customer_id: Optional[str] = None
     customer_name: Optional[str] = None
     location: Optional[str] = None
     task_category_id: Optional[int] = None
