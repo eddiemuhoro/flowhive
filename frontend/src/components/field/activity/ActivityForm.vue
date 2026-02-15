@@ -53,12 +53,13 @@
     <div class="grid grid-cols-2 gap-4">
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Start Time <span class="text-red-500">*</span>
+          Start Time <span v-if="!isAssignMode" class="text-red-500">*</span>
+          <span v-if="isAssignMode" class="text-gray-500">(Optional)</span>
         </label>
         <input
           v-model="formData.start_time"
           type="time"
-          required
+          :required="!isAssignMode"
           class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           :class="{ 'border-red-300': errors.start_time }"
         />
@@ -68,12 +69,13 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          End Time <span class="text-red-500">*</span>
+          End Time <span v-if="!isAssignMode" class="text-red-500">*</span>
+          <span v-if="isAssignMode" class="text-gray-500">(Optional)</span>
         </label>
         <input
           v-model="formData.end_time"
           type="time"
-          required
+          :required="!isAssignMode"
           class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
           :class="{ 'border-red-300': errors.end_time }"
         />
@@ -82,7 +84,6 @@
         </p>
       </div>
     </div>
-
     <!-- Support Staff (if manager/executive creating for someone else) -->
     <div v-if="canSelectStaff">
       <label class="block text-sm font-medium text-gray-700 mb-1">
@@ -194,10 +195,11 @@
     <!-- Task Description -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Task Description <span class="text-red-500">*</span>
+        Task Description <span v-if="!isAssignMode" class="text-red-500">*</span>
+        <span v-if="isAssignMode" class="text-gray-500">(Complete when finishing task)</span>
       </label>
       <RichTextEditor
-        v-model="formData.task_description"
+        v-model="(formData.task_description as string)"
         placeholder="Detailed description of work performed (you can format text, add lists, headings, etc.)"
         :error="errors.task_description"
         min-height="200px"
@@ -210,7 +212,7 @@
         Remarks (Optional)
       </label>
       <RichTextEditor
-        v-model="formData.remarks"
+        v-model="(formData.remarks as string)"
         placeholder="Additional notes or observations"
         min-height="60px"
       />
@@ -219,12 +221,13 @@
     <!-- Customer Rep -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Customer Representative <span class="text-red-500">*</span>
+        Customer Representative <span v-if="!isAssignMode" class="text-red-500">*</span>
+        <span v-if="isAssignMode" class="text-gray-500">(Optional)</span>
       </label>
       <input
         v-model="formData.customer_rep"
         type="text"
-        required
+        :required="!isAssignMode"
         placeholder="Contact person at customer site"
         class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         :class="{ 'border-red-300': errors.customer_rep }"
@@ -250,7 +253,11 @@
         class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
       >
         {{
-          loading ? "Saving..." : isEdit ? "Update Activity" : "Create Activity"
+          loading ? "Saving..." :
+          isEdit ? "Update Activity" :
+          isAssignMode ? "Assign Task" :
+          isCompleteMode ? "Complete Task" :
+          "Create Activity"
         }}
       </button>
     </div>
@@ -262,6 +269,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { customerService } from "@/services/customer.service";
+import { ActivityStatus } from "@/types/field";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import type {
@@ -275,6 +283,7 @@ interface Props {
   workspaceId: number;
   activity?: FieldActivity;
   loading?: boolean;
+  mode?: 'create' | 'edit' | 'assign' | 'complete'; // New mode prop
 }
 
 interface Emits {
@@ -284,6 +293,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  mode: 'create',
 });
 
 const emit = defineEmits<Emits>();
@@ -298,10 +308,12 @@ const workspaceMembers = computed(
 
 const canSelectStaff = computed(() => {
   const role = currentUser.value?.role?.toUpperCase();
-  return role === "MANAGER" || role === "EXECUTIVE";
+  return (role === "MANAGER" || role === "EXECUTIVE") && (props.mode === 'create' || props.mode === 'assign');
 });
 
-const isEdit = computed(() => !!props.activity);
+const isEdit = computed(() => props.mode === 'edit');
+const isAssignMode = computed(() => props.mode === 'assign');
+const isCompleteMode = computed(() => props.mode === 'complete');
 
 const today = computed(() => {
   return new Date().toISOString().split("T")[0];
@@ -312,15 +324,16 @@ const formData = ref<FieldActivityCreate>({
   support_staff_id: currentUser.value?.id || 0,
   title: "",
   activity_date: today.value,
-  start_time: "09:00",
-  end_time: "17:00",
+  start_time: isAssignMode.value ? null : "09:00",
+  end_time: isAssignMode.value ? null : "17:00",
   customer_id: null,
   customer_name: "",
   location: "",
-  task_description: "",
+  task_description: isAssignMode.value ? "" : "",
   task_category_id: null,
   remarks: "",
-  customer_rep: "",
+  customer_rep: isAssignMode.value ? "" : "",
+  status: isAssignMode.value ? ActivityStatus.PENDING : ActivityStatus.COMPLETED,
 });
 
 const errors = ref<Record<string, string>>({});
@@ -381,7 +394,7 @@ const handleClickOutside = (event: MouseEvent) => {
   }
 };
 
-// Load existing activity data if editing
+// Load existing activity data if editing or completing
 watch(
   () => props.activity,
   (activity) => {
@@ -400,8 +413,14 @@ watch(
         task_category_id: activity.task_category_id,
         remarks: activity.remarks,
         customer_rep: activity.customer_rep,
+        status: activity.status,
       };
       customerSearch.value = activity.customer_name;
+
+      // If completing a pending task, set status to COMPLETED
+      if (props.mode === 'complete' && activity.status === ActivityStatus.PENDING) {
+        formData.value.status = ActivityStatus.COMPLETED;
+      }
     }
   },
   { immediate: true },
@@ -421,14 +440,32 @@ const validateForm = (): boolean => {
     isValid = false;
   }
 
-  if (!formData.value.start_time) {
-    errors.value.start_time = "Start time is required";
-    isValid = false;
-  }
+  // For assign mode (PENDING), these fields are optional
+  if (!isAssignMode.value) {
+    if (!formData.value.start_time) {
+      errors.value.start_time = "Start time is required";
+      isValid = false;
+    }
 
-  if (!formData.value.end_time) {
-    errors.value.end_time = "End time is required";
-    isValid = false;
+    if (!formData.value.end_time) {
+      errors.value.end_time = "End time is required";
+      isValid = false;
+    }
+
+    // Check if task_description has content (accounting for HTML tags)
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = formData.value.task_description || "";
+    const textContent = tempDiv.textContent || tempDiv.innerText || "";
+
+    if (!textContent.trim()) {
+      errors.value.task_description = "Task description is required";
+      isValid = false;
+    }
+
+    if (!formData.value.customer_rep?.trim()) {
+      errors.value.customer_rep = "Customer representative is required";
+      isValid = false;
+    }
   }
 
   if (!formData.value.customer_name?.trim()) {
@@ -438,21 +475,6 @@ const validateForm = (): boolean => {
 
   if (!formData.value.location?.trim()) {
     errors.value.location = "Location is required";
-    isValid = false;
-  }
-
-  // Check if task_description has content (accounting for HTML tags)
-  const tempDiv = document.createElement("div");
-  tempDiv.innerHTML = formData.value.task_description || "";
-  const textContent = tempDiv.textContent || tempDiv.innerText || "";
-
-  if (!textContent.trim()) {
-    errors.value.task_description = "Task description is required";
-    isValid = false;
-  }
-
-  if (!formData.value.customer_rep?.trim()) {
-    errors.value.customer_rep = "Customer representative is required";
     isValid = false;
   }
 
