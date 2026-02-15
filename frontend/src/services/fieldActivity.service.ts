@@ -116,6 +116,35 @@ export const fieldActivityService = {
   },
 
   /**
+   * Get pending tasks assigned to the current user
+   * @param workspaceId - The workspace ID
+   */
+  async getPendingTasks(workspaceId: number): Promise<FieldActivity[]> {
+    const response = await apiClient.get<FieldActivity[]>(
+      `/field-activities/workspace/${workspaceId}/pending`,
+    );
+    return response.data;
+  },
+  /**
+   * Get count of pending tasks for current user
+   * @param workspaceId - The workspace ID
+   */
+  async getPendingTasksCount(workspaceId: number): Promise<number> {
+    const tasks = await this.getPendingTasks(workspaceId);
+    return tasks.length;
+  },
+  /**
+   * Get pending tasks created/assigned by the current user (managers/executives only)
+   * @param workspaceId - The workspace ID
+   */
+  async getTasksAssignedByMe(workspaceId: number): Promise<FieldActivity[]> {
+    const response = await apiClient.get<FieldActivity[]>(
+      `/field-activities/workspace/${workspaceId}/assigned-by-me`,
+    );
+    return response.data;
+  },
+
+  /**
    * Upload a photo for a field activity
    * @param activityId - The activity ID
    * @param workspaceId - The workspace ID for validation

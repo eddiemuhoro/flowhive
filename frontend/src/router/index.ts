@@ -46,6 +46,11 @@ const router = createRouter({
           component: () => import("@/views/field/FieldDashboard.vue"),
         },
         {
+          path: "pending",
+          name: "field-pending-tasks",
+          component: () => import("@/views/field/FieldPendingTasks.vue"),
+        },
+        {
           path: "activities",
           name: "field-activities",
           component: () => import("@/views/field/FieldActivityLog.vue"),
