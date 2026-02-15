@@ -9,7 +9,7 @@ import aiofiles
 from app.database import get_db
 from app.models.user import User, UserRole
 from app.models.workspace import WorkspaceMember
-from app.models.field_activity import FieldActivity, TaskCategory, FieldActivityPhoto
+from app.models.field_activity import FieldActivity, TaskCategory, FieldActivityPhoto, ActivityStatus
 from app.schemas.field_activity import (
     FieldActivityCreate,
     FieldActivityUpdate,
@@ -44,6 +44,16 @@ async def create_field_activity(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not a member of this workspace"
         )
+
+    # Check if creating task for someone else (PENDING status)
+    if activity_data.status == ActivityStatus.PENDING:
+        # Only managers/executives can create pending tasks for others
+        if activity_data.support_staff_id != current_user.id:
+            if current_user.role not in [UserRole.MANAGER, UserRole.EXECUTIVE]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only managers/executives can assign tasks to other staff"
+                )
 
     # Validate task_category belongs to same workspace if provided
     if activity_data.task_category_id:
@@ -85,6 +95,7 @@ async def get_workspace_field_activities(
     task_category_id: Optional[int] = Query(None, description="Filter by category"),
     customer_name: Optional[str] = Query(None, description="Search customer name"),
     search: Optional[str] = Query(None, description="Search in task description"),
+    status: Optional[ActivityStatus] = Query(None, description="Filter by status"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -121,6 +132,9 @@ async def get_workspace_field_activities(
 
     if search:
         query = query.filter(FieldActivity.task_description.ilike(f"%{search}%"))
+
+    if status:
+        query = query.filter(FieldActivity.status == status)
 
     activities = query.order_by(FieldActivity.activity_date.desc(), FieldActivity.start_time.desc()).all()
 
@@ -237,8 +251,33 @@ async def update_field_activity(
                 detail="Invalid task category for this workspace"
             )
 
-    # Update activity fields
+    # Validate status transitions and required fields
     update_data = activity_data.model_dump(exclude_unset=True)
+
+    # If updating to COMPLETED, ensure required fields are provided
+    if 'status' in update_data and update_data['status'] == ActivityStatus.COMPLETED:
+        # Check current activity state and updated data
+        start_time = update_data.get('start_time') or activity.start_time
+        end_time = update_data.get('end_time') or activity.end_time
+        task_description = update_data.get('task_description') or activity.task_description
+
+        if not start_time or not end_time or not task_description:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="start_time, end_time, and task_description are required when completing a task"
+            )
+
+    # Permission check: staff can only complete their own pending tasks
+    if 'status' in update_data:
+        if activity.support_staff_id != current_user.id:
+            # Only managers/executives can update others' tasks
+            if current_user.role not in [UserRole.MANAGER, UserRole.EXECUTIVE]:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="You can only update your own assigned tasks"
+                )
+
+    # Update activity fields
 
     # Sanitize HTML content if present
     if 'task_description' in update_data and update_data['task_description']:
@@ -299,6 +338,78 @@ async def delete_field_activity(
     db.commit()
 
     return None
+
+
+@router.get("/workspace/{workspace_id}/pending", response_model=List[FieldActivityResponse])
+async def get_pending_tasks(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get pending tasks assigned to the current user"""
+    # Check if user is workspace member
+    is_member = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id,
+        WorkspaceMember.user_id == current_user.id
+    ).first()
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this workspace"
+        )
+
+    # Get pending tasks assigned to current user
+    pending_tasks = db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.support_staff_id == current_user.id,
+        FieldActivity.status == ActivityStatus.PENDING
+    ).order_by(FieldActivity.activity_date.asc()).all()
+
+    # Populate computed fields
+    for task in pending_tasks:
+        task.support_staff_name = task.support_staff.full_name or task.support_staff.username
+        task.created_by_name = task.created_by_user.full_name or task.created_by_user.username
+        if task.updated_by:
+            task.updated_by_name = task.updated_by_user.full_name or task.updated_by_user.username
+
+    return pending_tasks
+
+
+@router.get("/workspace/{workspace_id}/assigned-by-me", response_model=List[FieldActivityResponse])
+async def get_tasks_assigned_by_me(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.MANAGER, UserRole.EXECUTIVE]))
+):
+    """Get pending tasks created by the current user (managers/executives only)"""
+    # Check if user is workspace member
+    is_member = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id,
+        WorkspaceMember.user_id == current_user.id
+    ).first()
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this workspace"
+        )
+
+    # Get pending tasks created by current user
+    assigned_tasks = db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.created_by == current_user.id,
+        FieldActivity.status == ActivityStatus.PENDING
+    ).order_by(FieldActivity.activity_date.asc()).all()
+
+    # Populate computed fields
+    for task in assigned_tasks:
+        task.support_staff_name = task.support_staff.full_name or task.support_staff.username
+        task.created_by_name = task.created_by_user.full_name or task.created_by_user.username
+        if task.updated_by:
+            task.updated_by_name = task.updated_by_user.full_name or task.updated_by_user.username
+
+    return assigned_tasks
 
 
 @router.get("/workspace/{workspace_id}/analytics")

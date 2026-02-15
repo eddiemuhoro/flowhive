@@ -1,7 +1,14 @@
 from datetime import datetime, time, timedelta
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date, Time, Boolean
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, Text, Date, Time, Boolean, Enum
 from sqlalchemy.orm import relationship
 from app.database import Base
+import enum
+
+
+class ActivityStatus(str, enum.Enum):
+    PENDING = "PENDING"
+    IN_PROGRESS = "IN_PROGRESS"
+    COMPLETED = "COMPLETED"
 
 
 class TaskCategory(Base):
@@ -33,16 +40,17 @@ class FieldActivity(Base):
     workspace_id = Column(Integer, ForeignKey("workspaces.id"), nullable=False)
     support_staff_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     activity_date = Column(Date, nullable=False, index=True)
-    start_time = Column(Time, nullable=False)
-    end_time = Column(Time, nullable=False)
+    start_time = Column(Time, nullable=True)  # Nullable for pending tasks
+    end_time = Column(Time, nullable=True)  # Nullable for pending tasks
     title = Column(String, nullable=False)  # Short summary of activity
     customer_id = Column(String, nullable=True)  # External customer ID from SAJSoft
     customer_name = Column(String, nullable=False)
     location = Column(String, nullable=False)
     task_category_id = Column(Integer, ForeignKey("task_categories.id"), nullable=True, index=True)
-    task_description = Column(Text, nullable=False)
+    task_description = Column(Text, nullable=True)  # Nullable for pending tasks
     remarks = Column(Text, nullable=True)
     customer_rep = Column(String, nullable=True)
+    status = Column(Enum(ActivityStatus), nullable=False, default=ActivityStatus.COMPLETED, index=True)
     created_by = Column(Integer, ForeignKey("users.id"), nullable=False)
     updated_by = Column(Integer, ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)

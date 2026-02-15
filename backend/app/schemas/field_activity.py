@@ -1,7 +1,8 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, date, time
 from app.schemas.user import UserResponse
+from app.models.field_activity import ActivityStatus
 
 
 # Minimal user info for creator/updater fields
@@ -78,21 +79,34 @@ class FieldActivityPhotoResponse(FieldActivityPhotoBase):
 # FieldActivity Schemas
 class FieldActivityBase(BaseModel):
     activity_date: date
-    start_time: time
-    end_time: time
+    start_time: Optional[time] = None  # Required only for COMPLETED status
+    end_time: Optional[time] = None  # Required only for COMPLETED status
     title: str
     customer_id: Optional[str] = None
     customer_name: str
     location: str
     task_category_id: Optional[int] = None
-    task_description: str
+    task_description: Optional[str] = None  # Required only for COMPLETED status
     remarks: Optional[str] = None
     customer_rep: Optional[str] = None
+    status: ActivityStatus = ActivityStatus.COMPLETED
 
 
 class FieldActivityCreate(FieldActivityBase):
     workspace_id: int
     support_staff_id: int
+
+    @model_validator(mode='after')
+    def validate_completed_fields(self):
+        """Ensure required fields are present when status is COMPLETED"""
+        if self.status == ActivityStatus.COMPLETED:
+            if not self.start_time:
+                raise ValueError("start_time is required for COMPLETED status")
+            if not self.end_time:
+                raise ValueError("end_time is required for COMPLETED status")
+            if not self.task_description:
+                raise ValueError("task_description is required for COMPLETED status")
+        return self
 
 
 class FieldActivityUpdate(BaseModel):
@@ -108,6 +122,7 @@ class FieldActivityUpdate(BaseModel):
     remarks: Optional[str] = None
     customer_rep: Optional[str] = None
     support_staff_id: Optional[int] = None
+    status: Optional[ActivityStatus] = None
 
 
 class FieldActivityResponse(FieldActivityBase):
@@ -118,7 +133,7 @@ class FieldActivityResponse(FieldActivityBase):
     updated_by: Optional[int] = None
     created_at: datetime
     updated_at: datetime
-    duration_hours: float
+    duration_hours: Optional[float] = None  # None for pending tasks
 
     # Nested objects
     support_staff_name: Optional[str] = None
