@@ -50,7 +50,7 @@ export const useFieldActivityStore = defineStore("fieldActivity", {
      */
     totalHours: (state): number => {
       return state.activities.reduce(
-        (sum, activity) => sum + activity.duration_hours,
+        (sum, activity) => sum + (activity.duration_hours || 0),
         0,
       );
     },

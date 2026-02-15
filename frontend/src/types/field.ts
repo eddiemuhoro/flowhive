@@ -6,6 +6,12 @@ export enum WorkspaceType {
   FIELD_OPERATIONS = "FIELD_OPERATIONS",
 }
 
+export enum ActivityStatus {
+  PENDING = "PENDING",
+  IN_PROGRESS = "IN_PROGRESS",
+  COMPLETED = "COMPLETED",
+}
+
 // Customer (from external SAJSoft API)
 export interface Customer {
   id: string;
@@ -79,17 +85,18 @@ export interface FieldActivity {
   support_staff_name: string;
   title: string;
   activity_date: string; // YYYY-MM-DD
-  start_time: string; // HH:MM:SS
-  end_time: string; // HH:MM:SS
+  start_time: string | null; // HH:MM:SS - null for pending tasks
+  end_time: string | null; // HH:MM:SS - null for pending tasks
   customer_id: string | null;
   customer_name: string;
   location: string;
-  task_description: string;
+  task_description: string | null; // null for pending tasks
   task_category_id: number | null;
   task_category: TaskCategory | null;
-  remarks: string;
-  customer_rep: string;
-  duration_hours: number;
+  remarks: string | null;
+  customer_rep: string | null;
+  status: ActivityStatus;
+  duration_hours: number | null; // null for pending tasks
   created_by: number;
   created_by_name: string;
   updated_by: number | null;
@@ -103,30 +110,32 @@ export interface FieldActivityCreate {
   support_staff_id: number;
   title: string;
   activity_date: string;
-  start_time: string;
-  end_time: string;
+  start_time?: string | null; // Optional for PENDING status
+  end_time?: string | null; // Optional for PENDING status
   customer_id?: string | null;
   customer_name: string;
   location: string;
-  task_description: string;
+  task_description?: string | null; // Optional for PENDING status
   task_category_id?: number | null;
-  remarks: string;
-  customer_rep: string;
+  remarks?: string | null;
+  customer_rep?: string | null;
+  status?: ActivityStatus; // Defaults to COMPLETED
 }
 
 export interface FieldActivityUpdate {
   support_staff_id?: number;
   title?: string;
   activity_date?: string;
-  start_time?: string;
-  end_time?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   customer_id?: string | null;
   customer_name?: string;
   location?: string;
-  task_description?: string;
+  task_description?: string | null;
   task_category_id?: number | null;
-  remarks?: string;
-  customer_rep?: string;
+  remarks?: string | null;
+  customer_rep?: string | null;
+  status?: ActivityStatus;
 }
 
 export interface FieldActivityDetail extends FieldActivity {
@@ -159,4 +168,5 @@ export interface FieldActivityFilters {
   task_category_id?: number;
   customer_name?: string;
   search?: string; // Search in task_description field
+  status?: ActivityStatus; // Filter by status
 }

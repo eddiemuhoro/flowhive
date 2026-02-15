@@ -186,6 +186,55 @@
           </button>
 
           <router-link
+            to="/field/pending"
+            class="group relative flex items-center space-x-4 rounded-xl bg-gradient-to-r from-green-500 to-green-600 p-4 text-left transition-all hover:from-green-600 hover:to-green-700 hover:shadow-lg active:scale-95"
+          >
+            <!-- Badge for pending count -->
+            <div
+              v-if="pendingTasksCount > 0"
+              class="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-red-500 text-xs font-bold text-white shadow-lg ring-2 ring-white"
+            >
+              {{ pendingTasksCount }}
+            </div>
+            <div
+              class="rounded-full bg-white bg-opacity-20 p-3 backdrop-blur-sm"
+            >
+              <svg
+                class="h-6 w-6 text-white"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                />
+              </svg>
+            </div>
+            <div class="flex-1">
+              <p class="font-semibold text-white">Pending Tasks</p>
+              <p class="text-sm text-green-100">
+                {{ pendingTasksCount > 0 ? `${pendingTasksCount} task${pendingTasksCount > 1 ? 's' : ''} waiting` : 'View & manage assigned tasks' }}
+              </p>
+            </div>
+            <svg
+              class="h-5 w-5 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </router-link>
+
+          <router-link
             to="/field/activities"
             class="group flex items-center space-x-4 rounded-xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-blue-500 hover:shadow-md active:scale-95"
           >
@@ -228,7 +277,7 @@
           <router-link
             v-if="canViewAnalytics"
             to="/field/analytics"
-            class="group flex items-center space-x-4 rounded-xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-purple-500 hover:shadow-md active:scale-95 sm:col-span-2"
+            class="group flex items-center space-x-4 rounded-xl border-2 border-gray-200 bg-white p-4 transition-all hover:border-purple-500 hover:shadow-md active:scale-95"
           >
             <div
               class="rounded-full bg-purple-100 p-3 group-hover:bg-purple-200 transition-colors"
@@ -404,6 +453,7 @@ import { useRouter } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useFieldActivityStore } from "@/stores/fieldActivity";
+import { fieldActivityService } from "@/services/fieldActivity.service";
 import ActivityCard from "@/components/field/activity/ActivityCard.vue";
 import ActivityForm from "@/components/field/activity/ActivityForm.vue";
 import type { FieldActivityCreate, FieldActivityUpdate } from "@/types/field";
@@ -427,6 +477,7 @@ const formLoading = ref(false);
 const showActivityForm = ref(false);
 const editingActivity = ref<any>(null);
 const viewMode = ref<"my" | "team">("team"); // Default to team view for collaboration
+const pendingTasksCount = ref(0);
 
 const recentActivities = computed(() => {
   return activityStore.sortedActivities.slice(0, 5);
@@ -466,7 +517,7 @@ const weekHours = computed(() => {
       if (!(date >= weekAgo && date <= now)) return false;
       return isManager || a.support_staff_id === currentUser.value?.id;
     })
-    .reduce((sum, a) => sum + a.duration_hours, 0);
+    .reduce((sum, a) => sum + (a?.duration_hours || 0), 0);
 });
 
 const monthCount = computed(() => {
@@ -480,6 +531,18 @@ const monthCount = computed(() => {
     return isManager || a.support_staff_id === currentUser.value?.id;
   }).length;
 });
+
+const loadPendingTasksCount = async () => {
+  if (!currentWorkspaceId.value) return;
+
+  try {
+    pendingTasksCount.value = await fieldActivityService.getPendingTasksCount(
+      currentWorkspaceId.value
+    );
+  } catch (error) {
+    console.error("Failed to load pending tasks count:", error);
+  }
+};
 
 const loadActivities = async () => {
   if (!currentWorkspaceId.value) return;
@@ -541,6 +604,7 @@ const handleActivitySubmit = async (
     }
     closeActivityForm();
     await loadActivities();
+    await loadPendingTasksCount();
   } catch (error: any) {
     console.error("Failed to save activity:", error);
     alert(
@@ -564,5 +628,6 @@ watch(viewMode, () => {
 
 onMounted(() => {
   loadActivities();
+  loadPendingTasksCount();
 });
 </script>
