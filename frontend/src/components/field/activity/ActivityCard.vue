@@ -63,7 +63,7 @@
             d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
           />
         </svg>
-        <span>{{ formatDuration(activity.duration_hours) }}</span>
+        <span>{{ activity.duration_hours ? formatDuration(activity.duration_hours) : 'N/A' }}</span>
       </div>
 
       <!-- Support Staff -->
@@ -212,7 +212,7 @@ const formatDateTime = computed(() => {
     month: "short",
     day: "numeric",
   });
-  const time = props.activity.start_time.substring(0, 5); // HH:MM
+  const time = props.activity.start_time?.substring(0, 5) || 'TBD'; // HH:MM
   return `${formattedDate} • ${time}`;
 });
 

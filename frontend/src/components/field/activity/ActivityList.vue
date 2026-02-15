@@ -258,6 +258,9 @@ const groupedActivities = computed(() => {
   // Sort activities within each group by start time
   Object.keys(groups).forEach((date) => {
     groups[date].sort((a, b) => {
+      // Handle null start_time for pending tasks
+      if (!a.start_time) return 1;
+      if (!b.start_time) return -1;
       return a.start_time.localeCompare(b.start_time);
     });
   });

@@ -114,12 +114,15 @@
               <p class="mt-1 text-base text-gray-900">
                 {{ formatDate(activity.activity_date) }}
               </p>
-              <p class="mt-1 text-sm text-gray-600">
+              <p v-if="activity.start_time && activity.end_time" class="mt-1 text-sm text-gray-600">
                 {{ activity.start_time.substring(0, 5) }} -
                 {{ activity.end_time.substring(0, 5) }}
-                <span class="ml-2 text-gray-500"
+                <span v-if="activity.duration_hours" class="ml-2 text-gray-500"
                   >({{ formatDuration(activity.duration_hours) }})</span
                 >
+              </p>
+              <p v-else class="mt-1 text-sm text-gray-500 italic">
+                Time not specified
               </p>
             </div>
 
