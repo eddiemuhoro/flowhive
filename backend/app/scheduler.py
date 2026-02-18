@@ -12,9 +12,8 @@ import logging
 
 from app.database import SessionLocal
 from app.models.field_activity import FieldActivity
-from app.models.workspace import Workspace, WorkspaceMember
-from app.models.user import User, UserRole
-from app.utils.email import send_activity_report_email
+from app.models.workspace import Workspace
+from app.services.field_activity_service import FieldActivityReportService
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -72,140 +71,48 @@ async def send_weekly_reports():
                     logger.info(f"No activities found for workspace {workspace.name}")
                     continue
 
-                # Get all workspace members with their user info
-                members = db.query(WorkspaceMember, User).join(
-                    User, WorkspaceMember.user_id == User.id
-                ).filter(
-                    WorkspaceMember.workspace_id == workspace.id
-                ).all()
+                # Send individual reports to each workspace member
+                try:
+                    result = await FieldActivityReportService.send_individual_reports(
+                        workspace_id=workspace.id,
+                        activities=activities,
+                        date_from=date_from,
+                        date_to=date_to,
+                        db=db,
+                        resend_api_key=settings.RESEND_API_KEY,
+                        from_email=settings.RESEND_FROM_EMAIL,
+                        from_name=settings.RESEND_FROM_NAME,
+                        frontend_url=settings.FRONTEND_URL
+                    )
 
-                # Group activities by staff for easy lookup
-                activities_by_staff_id = {}
-                all_activities_list = []
+                    logger.info(
+                        f"Workspace {workspace.name}: {result['sent_count']} sent, "
+                        f"{result['failed_count']} failed"
+                    )
 
-                for activity in activities:
-                    staff_id = activity.support_staff_id
-                    if staff_id not in activities_by_staff_id:
-                        activities_by_staff_id[staff_id] = {
-                            'staff_name': activity.support_staff.full_name or activity.support_staff.username,
-                            'activities': [],
-                            'total_hours': 0
-                        }
+                    if result.get('errors'):
+                        for error in result['errors']:
+                            logger.error(f"  - {error}")
 
-                    activity_dict = {
-                        'id': activity.id,
-                        'title': activity.title,
-                        'activity_date': str(activity.activity_date),
-                        'start_time': str(activity.start_time) if activity.start_time else '',
-                        'end_time': str(activity.end_time) if activity.end_time else '',
-                        'duration_hours': activity.duration_hours,
-                        'customer_name': activity.customer_name,
-                        'location': activity.location,
-                        'task_description': activity.task_description,
-                        'remarks': activity.remarks,
-                        'customer_rep': activity.customer_rep,
-                    }
+                except Exception as e:
+                    logger.error(f"Failed to send individual reports for workspace {workspace.name}: {str(e)}")
 
-                    activities_by_staff_id[staff_id]['activities'].append(activity_dict)
-                    activities_by_staff_id[staff_id]['total_hours'] += activity.duration_hours or 0
-
-                all_activities_list = list(activities_by_staff_id.values())
-
-                # Calculate full summary for managers/executives
-                total_hours = sum(a.duration_hours or 0 for a in activities)
-                unique_customers = len(set(a.customer_name for a in activities))
-                unique_staff = len(activities_by_staff_id)
-
-                full_summary = {
-                    'total_activities': len(activities),
-                    'total_hours': total_hours,
-                    'unique_customers': unique_customers,
-                    'unique_staff': unique_staff
-                }
-
-                sent_count = 0
-                failed_count = 0
-
-                # Send individual reports to each member
-                for member, user in members:
-                    if not user.email:
-                        continue  # Skip users without email
-
-                    try:
-                        # Check user role
-                        is_manager_or_exec = user.role in [UserRole.MANAGER, UserRole.EXECUTIVE]
-
-                        if is_manager_or_exec:
-                            # Send full report to managers/executives
-                            subject = f"Weekly Activity Report - {workspace.name} All Staff ({date_from} to {date_to})"
-                            activities_to_send = all_activities_list
-                            summary_to_send = full_summary
-                            logger.info(f"Sending full report to {user.email} ({user.role})")
-                        else:
-                            # Send only their activities to team members
-                            user_activities = activities_by_staff_id.get(user.id)
-
-                            if not user_activities:
-                                # No activities for this user, skip
-                                logger.info(f"No activities for {user.email}, skipping")
-                                continue
-
-                            subject = f"Your Weekly Activity Report - {workspace.name} ({date_from} to {date_to})"
-                            activities_to_send = [user_activities]
-                            summary_to_send = {
-                                'total_activities': len(user_activities['activities']),
-                                'total_hours': user_activities['total_hours'],
-                                'unique_customers': len(set(a['customer_name'] for a in user_activities['activities'])),
-                                'unique_staff': 1
-                            }
-                            logger.info(f"Sending individual report to {user.email}")
-
-                        # Send email
-                        result = send_activity_report_email(
-                            to_emails=[user.email],
-                            subject=subject,
-                            activities_by_staff=activities_to_send,
-                            date_from=date_from,
-                            date_to=date_to,
-                            summary=summary_to_send,
-                            resend_api_key=settings.RESEND_API_KEY,
-                            from_email=settings.RESEND_FROM_EMAIL,
-                            from_name=settings.RESEND_FROM_NAME,
-                            frontend_url=settings.FRONTEND_URL
-                        )
-
-                        if result['success']:
-                            sent_count += 1
-                        else:
-                            failed_count += 1
-                            logger.error(f"Failed to send to {user.email}: {result.get('error')}")
-
-                    except Exception as e:
-                        failed_count += 1
-                        logger.error(f"Error sending to {user.email}: {str(e)}")
-
-                # Also send to configured recipients if specified
+                # Also send to configured recipients if specified (full report)
                 if settings.weekly_report_recipients_list:
                     try:
-                        subject = f"Weekly Activity Report - {workspace.name} All Staff ({date_from} to {date_to})"
-                        result = send_activity_report_email(
-                            to_emails=settings.weekly_report_recipients_list,
-                            subject=subject,
-                            activities_by_staff=all_activities_list,
+                        await FieldActivityReportService.send_bulk_report(
+                            activities=activities,
+                            recipient_emails=settings.weekly_report_recipients_list,
                             date_from=date_from,
                             date_to=date_to,
-                            summary=full_summary,
                             resend_api_key=settings.RESEND_API_KEY,
                             from_email=settings.RESEND_FROM_EMAIL,
                             from_name=settings.RESEND_FROM_NAME,
                             frontend_url=settings.FRONTEND_URL
                         )
-                        if result['success']:
-                            logger.info(f"Report sent to configured recipients")
+                        logger.info(f"Full report sent to configured recipients: {settings.weekly_report_recipients_list}")
                     except Exception as e:
                         logger.error(f"Failed to send to configured recipients: {str(e)}")
-
-                logger.info(f"Workspace {workspace.name}: {sent_count} sent, {failed_count} failed")
 
             except Exception as e:
                 logger.error(f"Error processing workspace {workspace.id}: {str(e)}")
