@@ -11,6 +11,11 @@ class ActivityStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
 
 
+class LocationType(str, enum.Enum):
+    OFFICE = "OFFICE"  # Work done from office/remotely
+    ON_SITE = "ON_SITE"  # Physical visit to customer location
+
+
 class TaskCategory(Base):
     __tablename__ = "task_categories"
 
@@ -45,6 +50,7 @@ class FieldActivity(Base):
     title = Column(String, nullable=False)  # Short summary of activity
     customer_id = Column(String, nullable=True)  # External customer ID from SAJSoft
     customer_name = Column(String, nullable=False)
+    location_type = Column(Enum(LocationType), nullable=False, default=LocationType.ON_SITE, index=True)  # Work location type
     location = Column(String, nullable=False)
     task_category_id = Column(Integer, ForeignKey("task_categories.id"), nullable=True, index=True)
     task_description = Column(Text, nullable=True)  # Nullable for pending tasks

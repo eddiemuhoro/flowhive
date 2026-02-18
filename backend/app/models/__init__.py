@@ -3,7 +3,7 @@ from app.models.workspace import Workspace, WorkspaceMember, WorkspaceType
 from app.models.project import Project
 from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.comment import Comment, Attachment, ActivityLog
-from app.models.field_activity import FieldActivity, FieldActivityPhoto, TaskCategory
+from app.models.field_activity import FieldActivity, FieldActivityPhoto, TaskCategory, LocationType
 from app.models.meeting_minute import MeetingMinute, MinuteAttachment, MinuteActionItem
 
 __all__ = [
@@ -22,6 +22,7 @@ __all__ = [
     "FieldActivity",
     "FieldActivityPhoto",
     "TaskCategory",
+    "LocationType",
     "MeetingMinute",
     "MinuteAttachment",
     "MinuteActionItem",

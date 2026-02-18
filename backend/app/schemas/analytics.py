@@ -10,6 +10,14 @@ class FieldActivityAnalytics(BaseModel):
     activities_this_month: int
     top_staff: List[Dict[str, Any]] = []  # Top field staff by activity count
     category_distribution: Dict[str, int] = {}  # Activities by category
+    top_customers: List[Dict[str, Any]] = []  # Top customers by visit count
+    unique_customers: int = 0  # Number of unique customers served
+    # Billing metrics
+    billable_hours: float = 0.0  # Total hours for ON_SITE visits
+    non_billable_hours: float = 0.0  # Total hours for OFFICE activities
+    billable_visits: int = 0  # Count of ON_SITE activities
+    office_activities: int = 0  # Count of OFFICE activities
+    billing_rate: float = 0.0  # Percentage of billable hours
 
 
 class TaskAnalytics(BaseModel):

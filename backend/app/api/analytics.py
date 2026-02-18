@@ -8,7 +8,7 @@ from app.models.user import User, UserRole
 from app.models.workspace import Workspace, WorkspaceMember
 from app.models.project import Project
 from app.models.task import Task, TaskStatus, TaskPriority
-from app.models.field_activity import FieldActivity, TaskCategory
+from app.models.field_activity import FieldActivity, TaskCategory, LocationType
 from app.schemas.analytics import (
     TaskAnalytics,
     ProjectAnalytics,
@@ -92,13 +92,67 @@ def get_field_activity_analytics(db: Session, workspace_id: int) -> FieldActivit
     if uncategorized > 0:
         category_distribution["Uncategorized"] = uncategorized
 
+    # Top customers by visit count
+    top_customers_stats = db.query(
+        FieldActivity.customer_name,
+        func.count(FieldActivity.id).label('visit_count')
+    ).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_name.isnot(None)
+    ).group_by(
+        FieldActivity.customer_name
+    ).order_by(
+        func.count(FieldActivity.id).desc()
+    ).limit(6).all()
+
+    top_customers = [
+        {
+            "customer_name": name,
+            "visit_count": count
+        }
+        for name, count in top_customers_stats
+    ]
+
+    # Unique customers served
+    unique_customers = db.query(
+        func.count(func.distinct(FieldActivity.customer_id))
+    ).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id.isnot(None)
+    ).scalar() or 0
+
+    # Billing metrics (ON_SITE vs OFFICE)
+    billable_hours = 0.0
+    non_billable_hours = 0.0
+    billable_visits = 0
+    office_activities = 0
+
+    for activity in all_activities:
+        hours = activity.duration_hours
+        if activity.location_type == LocationType.ON_SITE:
+            billable_hours += hours
+            billable_visits += 1
+        else:  # OFFICE
+            non_billable_hours += hours
+            office_activities += 1
+
+    # Calculate billing rate percentage
+    billing_rate = (billable_hours / total_hours * 100) if total_hours > 0 else 0.0
+
     return FieldActivityAnalytics(
         total_activities=total_activities,
         total_hours=round(total_hours, 2),
         activities_this_week=activities_this_week,
         activities_this_month=activities_this_month,
         top_staff=top_staff,
-        category_distribution=category_distribution
+        category_distribution=category_distribution,
+        top_customers=top_customers,
+        unique_customers=unique_customers,
+        billable_hours=round(billable_hours, 2),
+        non_billable_hours=round(non_billable_hours, 2),
+        billable_visits=billable_visits,
+        office_activities=office_activities,
+        billing_rate=round(billing_rate, 1)
     )
 
 
@@ -110,6 +164,200 @@ async def get_field_activity_analytics_endpoint(
 ):
     """Get field activity analytics for a workspace"""
     return get_field_activity_analytics(db, workspace_id)
+
+
+@router.get("/customers/top-customers", response_model=List[Dict])
+async def get_top_customers(
+    workspace_id: int,
+    limit: int = 10,
+    date_from: datetime = None,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get top customers by activity count"""
+    query = db.query(
+        FieldActivity.customer_id,
+        FieldActivity.customer_name,
+    ).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id.isnot(None)
+    )
+
+    if date_from:
+        query = query.filter(FieldActivity.activity_date >= date_from.date())
+
+    # Get all activities grouped by customer
+    activities = query.all()
+
+    # Group by customer and calculate stats
+    customer_stats = {}
+    for activity in db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id.isnot(None)
+    ).all():
+        if date_from and activity.activity_date < date_from.date():
+            continue
+
+        cust_id = activity.customer_id
+        if cust_id not in customer_stats:
+            customer_stats[cust_id] = {
+                "customer_id": cust_id,
+                "customer_name": activity.customer_name,
+                "activity_count": 0,
+                "total_hours": 0.0
+            }
+        customer_stats[cust_id]["activity_count"] += 1
+        customer_stats[cust_id]["total_hours"] += activity.duration_hours
+
+    # Sort by activity count and limit
+    result = sorted(
+        customer_stats.values(),
+        key=lambda x: x['activity_count'],
+        reverse=True
+    )[:limit]
+
+    # Round hours
+    for item in result:
+        item["total_hours"] = round(item["total_hours"], 2)
+
+    return result
+
+
+@router.get("/customers/{customer_id}/timeline", response_model=Dict)
+async def get_customer_timeline(
+    customer_id: str,
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get activity timeline for a specific customer"""
+    activities = db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id == customer_id
+    ).order_by(FieldActivity.activity_date.desc()).all()
+
+    if not activities:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No activities found for this customer"
+        )
+
+    return {
+        "customer_id": customer_id,
+        "customer_name": activities[0].customer_name,
+        "last_visit": activities[0].activity_date.isoformat(),
+        "first_visit": activities[-1].activity_date.isoformat(),
+        "total_visits": len(activities),
+        "total_hours": round(sum(a.duration_hours for a in activities), 2),
+        "recent_activities": [
+            {
+                "id": a.id,
+                "date": a.activity_date.isoformat(),
+                "title": a.title,
+                "category": a.task_category.title if a.task_category else None,
+                "hours": round(a.duration_hours, 2),
+                "status": a.status.value
+            }
+            for a in activities[:5]  # Last 5 activities
+        ]
+    }
+
+
+@router.get("/customers/health-check", response_model=List[Dict])
+async def get_customer_health_check(
+    workspace_id: int,
+    days_threshold: int = 30,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Identify customers at risk (not visited recently)"""
+
+    # Get last visit date per customer
+    subquery = db.query(
+        FieldActivity.customer_id,
+        FieldActivity.customer_name,
+        func.max(FieldActivity.activity_date).label('last_visit'),
+        func.count(FieldActivity.id).label('total_visits')
+    ).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id.isnot(None)
+    ).group_by(
+        FieldActivity.customer_id,
+        FieldActivity.customer_name
+    ).subquery()
+
+    results = db.query(subquery).all()
+
+    now = datetime.utcnow().date()
+    customer_health = []
+
+    for customer in results:
+        days_since_visit = (now - customer.last_visit).days
+        status_value = "healthy" if days_since_visit < days_threshold else "at_risk"
+
+        customer_health.append({
+            "customer_id": customer.customer_id,
+            "customer_name": customer.customer_name,
+            "last_visit": customer.last_visit.isoformat(),
+            "days_since_visit": days_since_visit,
+            "total_visits": customer.total_visits,
+            "status": status_value
+        })
+
+    # Sort by days since visit (descending)
+    customer_health.sort(key=lambda x: x['days_since_visit'], reverse=True)
+    return customer_health
+
+
+@router.get("/customers/visit-frequency", response_model=List[Dict])
+async def get_customer_visit_frequency(
+    workspace_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Calculate average days between visits per customer"""
+    customers = db.query(
+        FieldActivity.customer_id,
+        FieldActivity.customer_name
+    ).filter(
+        FieldActivity.workspace_id == workspace_id,
+        FieldActivity.customer_id.isnot(None)
+    ).distinct().all()
+
+    frequency_data = []
+
+    for cust_id, cust_name in customers:
+        visits = db.query(FieldActivity.activity_date).filter(
+            FieldActivity.workspace_id == workspace_id,
+            FieldActivity.customer_id == cust_id
+        ).order_by(FieldActivity.activity_date).all()
+
+        if len(visits) < 2:
+            continue
+
+        # Calculate gaps between visits
+        gaps = [
+            (visits[i+1][0] - visits[i][0]).days
+            for i in range(len(visits) - 1)
+        ]
+
+        avg_gap = sum(gaps) / len(gaps) if gaps else 0
+
+        frequency_data.append({
+            "customer_id": cust_id,
+            "customer_name": cust_name,
+            "total_visits": len(visits),
+            "avg_days_between_visits": round(avg_gap, 1),
+            "frequency_category": (
+                "weekly" if avg_gap <= 7 else
+                "biweekly" if avg_gap <= 14 else
+                "monthly" if avg_gap <= 31 else
+                "quarterly" if avg_gap <= 90 else
+                "infrequent"
+            )
+        })
+
+    return sorted(frequency_data, key=lambda x: x['avg_days_between_visits'])
 
 
 @router.get("/overview", response_model=TaskAnalytics)

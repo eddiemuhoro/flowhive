@@ -2,7 +2,7 @@ from pydantic import BaseModel, field_validator, model_validator
 from typing import Optional, List
 from datetime import datetime, date, time
 from app.schemas.user import UserResponse
-from app.models.field_activity import ActivityStatus
+from app.models.field_activity import ActivityStatus, LocationType
 
 
 # Minimal user info for creator/updater fields
@@ -84,6 +84,7 @@ class FieldActivityBase(BaseModel):
     title: str
     customer_id: Optional[str] = None
     customer_name: str
+    location_type: LocationType = LocationType.ON_SITE
     location: str
     task_category_id: Optional[int] = None
     task_description: Optional[str] = None  # Required only for COMPLETED status
@@ -116,6 +117,7 @@ class FieldActivityUpdate(BaseModel):
     title: Optional[str] = None
     customer_id: Optional[str] = None
     customer_name: Optional[str] = None
+    location_type: Optional[LocationType] = None
     location: Optional[str] = None
     task_category_id: Optional[int] = None
     task_description: Optional[str] = None
