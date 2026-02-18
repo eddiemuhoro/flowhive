@@ -33,6 +33,26 @@
             <span>Back to List</span>
           </button>
           <button
+            @click="showEmailModal = true"
+            :disabled="filteredActivities.length === 0"
+            class="flex items-center space-x-2 rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-medium text-blue-600 hover:bg-blue-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <svg
+              class="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
+              />
+            </svg>
+            <span>Email Report</span>
+          </button>
+          <button
             @click="handlePrint"
             class="flex items-center space-x-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
           >
@@ -283,6 +303,124 @@
         </p>
       </div>
     </div>
+
+    <!-- Email Modal -->
+    <Teleport to="body">
+      <div
+        v-if="showEmailModal"
+        class="fixed inset-0 z-50 overflow-y-auto bg-black/50 p-4"
+        @click.self="closeEmailModal"
+      >
+        <div class="mx-auto max-w-md rounded-lg bg-white p-6 shadow-xl">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-xl font-semibold text-gray-900">Email Report</h2>
+            <button
+              @click="closeEmailModal"
+              class="rounded-lg p-2 text-gray-400 hover:bg-gray-100"
+            >
+              <svg
+                class="h-5 w-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
+            </button>
+          </div>
+
+          <form @submit.prevent="sendEmailReport">
+            <div class="space-y-4">
+              <div class="rounded-lg border border-gray-200 p-3">
+                <label class="flex items-start space-x-3 cursor-pointer">
+                  <input
+                    v-model="sendIndividualReports"
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <div class="flex-1">
+                    <span class="text-sm font-medium text-gray-900">
+                      📧 Send individual reports to all workspace members
+                    </span>
+                    <p class="text-xs text-gray-500 mt-1">
+                      Each staff member receives only their activities.
+                      Managers/Executives receive complete reports.
+                    </p>
+                  </div>
+                </label>
+              </div>
+
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-2">
+                  {{ sendIndividualReports ? '📨 Additional Recipients (Optional)' : '📮 Recipient Emails' }}
+                </label>
+                <p v-if="sendIndividualReports" class="text-xs text-gray-500 mb-2">
+                  These recipients will receive the full report in addition to workspace members
+                </p>
+                <div class="space-y-2">
+                  <input
+                    v-for="(email, index) in recipientEmails"
+                    :key="index"
+                    v-model="recipientEmails[index]"
+                    type="email"
+                    :required="!sendIndividualReports"
+                    placeholder="email@example.com"
+                    class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  @click="addRecipient"
+                  class="mt-2 text-sm text-blue-600 hover:text-blue-700"
+                >
+                  + Add another recipient
+                </button>
+              </div>
+
+              <div class="rounded-lg bg-gray-50 p-3">
+                <p class="text-sm text-gray-700">
+                  <strong>Report Period:</strong>
+                  {{ dateFrom || 'All' }} to {{ dateTo || 'Today' }}
+                </p>
+                <p class="text-sm text-gray-700 mt-1">
+                  <strong>Activities:</strong> {{ filteredActivities.length }}
+                </p>
+              </div>
+
+              <div v-if="emailError" class="rounded-lg bg-red-50 p-3">
+                <p class="text-sm text-red-700">{{ emailError }}</p>
+              </div>
+
+              <div v-if="emailSuccess" class="rounded-lg bg-green-50 p-3">
+                <p class="text-sm text-green-700">{{ emailSuccess }}</p>
+              </div>
+
+              <div class="flex space-x-3">
+                <button
+                  type="button"
+                  @click="closeEmailModal"
+                  class="flex-1 rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  :disabled="isSendingEmail || recipientEmails.some(e => !e)"
+                  class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {{ isSendingEmail ? 'Sending...' : 'Send Email' }}
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -291,6 +429,7 @@ import { ref, computed, onMounted } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useFieldActivities } from "@/composables/useFieldActivities";
+import { fieldActivityService } from "@/services/fieldActivity.service";
 import ActivityDetailCard from "@/components/field/activity/ActivityDetailCard.vue";
 import type { FieldActivityFilters } from "@/types/field";
 
@@ -305,6 +444,14 @@ const currentWorkspaceId = computed(() => currentWorkspace.value?.id || 0);
 const selectedStaffId = ref<number | undefined>(undefined);
 const dateFrom = ref<string | undefined>(undefined);
 const dateTo = ref<string | undefined>(undefined);
+
+// Email modal state
+const showEmailModal = ref(false);
+const recipientEmails = ref<string[]>(['']);
+const sendIndividualReports = ref(false);
+const isSendingEmail = ref(false);
+const emailError = ref<string | null>(null);
+const emailSuccess = ref<string | null>(null);
 
 // Computed filters
 const filters = computed<FieldActivityFilters>(() => ({
@@ -482,6 +629,62 @@ const loadFiltersFromUrl = () => {
 // Print handler
 const handlePrint = () => {
   window.print();
+};
+
+// Email modal functions
+const addRecipient = () => {
+  recipientEmails.value.push('');
+};
+
+const closeEmailModal = () => {
+  showEmailModal.value = false;
+  emailError.value = null;
+  emailSuccess.value = null;
+};
+
+const sendEmailReport = async () => {
+  emailError.value = null;
+  emailSuccess.value = null;
+  isSendingEmail.value = true;
+
+  try {
+    // If sending individual reports, emails are optional (will use workspace members)
+    const validEmails = recipientEmails.value.filter(e => e.trim());
+    if (!sendIndividualReports.value && validEmails.length === 0) {
+      emailError.value = 'Please enter at least one email address or enable individual reports';
+      isSendingEmail.value = false;
+      return;
+    }
+
+    const result = await fieldActivityService.sendReport(
+      currentWorkspaceId.value,
+      validEmails,
+      dateFrom.value,
+      dateTo.value,
+      selectedStaffId.value,
+      sendIndividualReports.value,
+    );
+
+    if (sendIndividualReports.value && result.sent_count !== undefined) {
+      emailSuccess.value = `Individual reports sent to ${result.sent_count} member(s)`;
+      if (result.failed_count && result.failed_count > 0) {
+        emailSuccess.value += ` (${result.failed_count} failed)`;
+      }
+    } else {
+      emailSuccess.value = `Report sent successfully to ${validEmails.length} recipient(s)`;
+    }
+
+    // Reset and close after 2 seconds
+    setTimeout(() => {
+      closeEmailModal();
+      recipientEmails.value = [''];
+      sendIndividualReports.value = false;
+    }, 2000);
+  } catch (error: any) {
+    emailError.value = error.response?.data?.detail || error.message || 'Failed to send email';
+  } finally {
+    isSendingEmail.value = false;
+  }
 };
 
 onMounted(() => {

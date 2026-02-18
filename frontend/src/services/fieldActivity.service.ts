@@ -186,4 +186,34 @@ export const fieldActivityService = {
       },
     );
   },
+
+  /**
+   * Send activity report via email
+   * @param workspaceId - The workspace ID
+   * @param recipientEmails - Array of recipient email addresses
+   * @param dateFrom - Start date (YYYY-MM-DD)
+   * @param dateTo - End date (YYYY-MM-DD)
+   * @param supportStaffId - Optional staff ID to filter by
+   * @param sendIndividualReports - If true, sends personalized reports to each workspace member
+   */
+  async sendReport(
+    workspaceId: number,
+    recipientEmails: string[],
+    dateFrom?: string,
+    dateTo?: string,
+    supportStaffId?: number,
+    sendIndividualReports?: boolean,
+  ): Promise<{ message: string; email_id?: string; sent_count?: number; failed_count?: number }> {
+    const response = await apiClient.post<{ message: string; email_id?: string; sent_count?: number; failed_count?: number }>(
+      `/field-activities/workspace/${workspaceId}/send-report`,
+      {
+        recipient_emails: recipientEmails,
+        date_from: dateFrom,
+        date_to: dateTo,
+        support_staff_id: supportStaffId,
+        send_individual_reports: sendIndividualReports || false,
+      },
+    );
+    return response.data;
+  },
 };
