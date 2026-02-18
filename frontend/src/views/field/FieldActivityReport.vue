@@ -364,7 +364,7 @@
                 </p>
                 <div class="space-y-2">
                   <input
-                    v-for="(email, index) in recipientEmails"
+                    v-for="(_, index) in recipientEmails"
                     :key="index"
                     v-model="recipientEmails[index]"
                     type="email"
