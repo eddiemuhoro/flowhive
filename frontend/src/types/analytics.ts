@@ -3,12 +3,27 @@ export interface FieldActivityAnalytics {
   total_hours: number;
   activities_this_week: number;
   activities_this_month: number;
+  top_customers: Array<{
+    customer_id: number;
+    visit_count: number;
+    customer_name: string;
+    activity_count: number;
+  }>;
+  unique_customers: number;
+
   top_staff: Array<{
     user_id: number;
     name: string;
     activity_count: number;
   }>;
   category_distribution: Record<string, number>;
+
+  // Billing metrics
+  billable_hours: number;
+  non_billable_hours: number;
+  billable_visits: number;
+  office_activities: number;
+  billing_rate: number;
 }
 
 export interface TaskAnalytics {

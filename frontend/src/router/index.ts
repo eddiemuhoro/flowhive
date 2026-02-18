@@ -79,7 +79,7 @@ const router = createRouter({
           path: "analytics",
           name: "field-analytics",
           component: () => import("@/views/field/FieldAnalytics.vue"),
-          meta: { roles: ["manager", "executive"] },
+          // meta: { roles: ["manager", "executive"] },
         },
         {
           path: "settings",

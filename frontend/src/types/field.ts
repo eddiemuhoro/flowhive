@@ -12,6 +12,11 @@ export enum ActivityStatus {
   COMPLETED = "COMPLETED",
 }
 
+export enum LocationType {
+  OFFICE = "OFFICE",      // Work done from office/remotely
+  ON_SITE = "ON_SITE",    // Physical visit to customer location
+}
+
 // Customer (from external SAJSoft API)
 export interface Customer {
   id: string;
@@ -89,6 +94,7 @@ export interface FieldActivity {
   end_time: string | null; // HH:MM:SS - null for pending tasks
   customer_id: string | null;
   customer_name: string;
+  location_type: LocationType;
   location: string;
   task_description: string | null; // null for pending tasks
   task_category_id: number | null;
@@ -114,6 +120,7 @@ export interface FieldActivityCreate {
   end_time?: string | null; // Optional for PENDING status
   customer_id?: string | null;
   customer_name: string;
+  location_type?: LocationType; // Defaults to ON_SITE
   location: string;
   task_description?: string | null; // Optional for PENDING status
   task_category_id?: number | null;
@@ -130,6 +137,7 @@ export interface FieldActivityUpdate {
   end_time?: string | null;
   customer_id?: string | null;
   customer_name?: string;
+  location_type?: LocationType;
   location?: string;
   task_description?: string | null;
   task_category_id?: number | null;
