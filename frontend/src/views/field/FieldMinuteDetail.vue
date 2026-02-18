@@ -355,7 +355,7 @@
                     :source="viewingFile.cloudinary_url"
                     :page="pdfPage"
                     :scale="pdfScale"
-                    @rendered="handlePdfRendered"
+                    @loaded="handlePdfLoaded"
                     class="mx-auto"
                   />
                 </div>
@@ -679,9 +679,8 @@ const closeViewer = () => {
   pdfTotalPages.value = 0;
 };
 
-const handlePdfRendered = (event: any) => {
-  if (event?.numPages) {
-    pdfTotalPages.value = event.numPages;
-  }
+const handlePdfLoaded = (pdf: any) => {
+  console.log('PDF loaded, numPages:', pdf?.numPages, 'pdfInfo:', pdf?._pdfInfo);
+  pdfTotalPages.value = pdf?.numPages || pdf?._numPages || pdf?._pdfInfo?.numPages || 0;
 };
 </script>
