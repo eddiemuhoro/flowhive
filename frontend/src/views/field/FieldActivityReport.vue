@@ -227,6 +227,9 @@
           </div>
         </div>
 
+        <!-- Customer Billing Summary -->
+        <!-- <CustomerBillingReport :activities="filteredActivities" /> -->
+
         <!-- Detailed Activities -->
         <div class="space-y-4">
           <h2 class="text-lg font-semibold text-gray-900">
@@ -431,6 +434,7 @@ import { useWorkspaceStore } from "@/stores/workspace";
 import { useFieldActivities } from "@/composables/useFieldActivities";
 import { fieldActivityService } from "@/services/fieldActivity.service";
 import ActivityDetailCard from "@/components/field/activity/ActivityDetailCard.vue";
+// import CustomerBillingReport from "./components/CustomerBillingReport.vue";
 import type { FieldActivityFilters } from "@/types/field";
 
 const router = useRouter();
