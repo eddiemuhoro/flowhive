@@ -174,21 +174,62 @@
       </p>
     </div>
 
+    <!-- Location Type -->
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-2">
+        Work Location <span class="text-red-500">*</span>
+      </label>
+      <div class="flex gap-4">
+        <label class="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            v-model="formData.location_type"
+            value="ON_SITE"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+          />
+          <span class="ml-2 text-sm text-gray-700">
+            On-Site Visit
+            <span class="text-xs text-green-600 font-medium">(Billable)</span>
+          </span>
+        </label>
+        <label class="flex items-center cursor-pointer">
+          <input
+            type="radio"
+            v-model="formData.location_type"
+            value="OFFICE"
+            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+          />
+          <span class="ml-2 text-sm text-gray-700">
+            From Office/Remote
+            <span class="text-xs text-gray-500">(Non-billable visit)</span>
+          </span>
+        </label>
+      </div>
+    </div>
+
     <!-- Location -->
     <div>
       <label class="block text-sm font-medium text-gray-700 mb-1">
-        Location <span class="text-red-500">*</span>
+        {{ formData.location_type === 'ON_SITE' ? 'Customer Site Address' : 'Work Location' }}
+        <span class="text-red-500">*</span>
       </label>
       <input
         v-model="formData.location"
         type="text"
         required
-        placeholder="Site location or address"
+        :placeholder="formData.location_type === 'ON_SITE' ? 'Customer site address' : 'Office'"
+        :readonly="formData.location_type === 'OFFICE'"
         class="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        :class="{ 'border-red-300': errors.location }"
+        :class="{
+          'border-red-300': errors.location,
+          'bg-gray-50': formData.location_type === 'OFFICE'
+        }"
       />
       <p v-if="errors.location" class="mt-1 text-sm text-red-600">
         {{ errors.location }}
+      </p>
+      <p v-if="formData.location_type === 'OFFICE'" class="mt-1 text-xs text-gray-500">
+        💡 This task was handled remotely - no physical visit charge applies
       </p>
     </div>
 
@@ -268,8 +309,8 @@
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
-import { customerService } from "@/services/customer.service";
-import { ActivityStatus } from "@/types/field";
+import { useCompanies } from "@/composables/useCustomers";
+import { ActivityStatus, LocationType } from "@/types/field";
 import CategorySelector from "@/components/field/category/CategorySelector.vue";
 import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 import type {
@@ -328,6 +369,7 @@ const formData = ref<FieldActivityCreate>({
   end_time: isAssignMode.value ? null : "17:00",
   customer_id: null,
   customer_name: "",
+  location_type: LocationType.ON_SITE,
   location: "",
   task_description: isAssignMode.value ? "" : "",
   task_category_id: null,
@@ -338,13 +380,13 @@ const formData = ref<FieldActivityCreate>({
 
 const errors = ref<Record<string, string>>({});
 
-// Customer search and selection
-const customers = ref<Customer[]>([]);
-const loadingCustomers = ref(false);
+// Customer search and selection using TanStack Query
+const { data: customers, isLoading: loadingCustomers } = useCompanies();
 const customerSearch = ref("");
 const showCustomerDropdown = ref(false);
 
 const filteredCustomers = computed(() => {
+  if (!customers.value) return [];
   if (!customerSearch.value.trim()) {
     return customers.value.slice(0, 50); // Show first 50 by default
   }
@@ -372,17 +414,6 @@ const handleCustomerSearch = () => {
   if (customerSearch.value !== formData.value.customer_name) {
     formData.value.customer_id = null;
     formData.value.customer_name = customerSearch.value;
-  }
-};
-
-const loadCustomers = async () => {
-  try {
-    loadingCustomers.value = true;
-    customers.value = await customerService.getCompanies();
-  } catch (error) {
-    console.error("Failed to load customers:", error);
-  } finally {
-    loadingCustomers.value = false;
   }
 };
 
@@ -414,6 +445,7 @@ watch(
         remarks: activity.remarks,
         customer_rep: activity.customer_rep,
         status: activity.status,
+        location_type: activity.location_type,
       };
       customerSearch.value = activity.customer_name;
 
@@ -424,6 +456,19 @@ watch(
     }
   },
   { immediate: true },
+);
+
+// Auto-fill location when location type changes
+watch(
+  () => formData.value.location_type,
+  (newType, oldType) => {
+    if (newType === LocationType.OFFICE) {
+      formData.value.location = 'Office';
+    } else if (newType === LocationType.ON_SITE && oldType === LocationType.OFFICE) {
+      // Clear location if switching from OFFICE to ON_SITE
+      formData.value.location = '';
+    }
+  },
 );
 
 const validateForm = (): boolean => {
@@ -499,9 +544,6 @@ onMounted(async () => {
   if (canSelectStaff.value && workspaceMembers.value.length === 0) {
     await workspaceStore.fetchWorkspace(props.workspaceId);
   }
-
-  // Load customers
-  await loadCustomers();
 
   // Add click outside listener
   document.addEventListener("click", handleClickOutside);
