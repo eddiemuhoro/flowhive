@@ -2,7 +2,7 @@ from typing import List, Optional
 import os
 import uuid
 from datetime import date, datetime
-from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Body
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 import aiofiles
@@ -19,6 +19,7 @@ from app.schemas.field_activity import (
 )
 from app.utils.auth import get_current_active_user, require_role
 from app.utils.sanitizer import sanitize_html
+from app.utils.email import send_activity_report_email
 from app.config import settings
 
 router = APIRouter()
@@ -614,3 +615,313 @@ async def delete_field_activity_photo(
     db.commit()
 
     return None
+
+
+@router.post("/workspace/{workspace_id}/send-report")
+async def send_activity_report(
+    workspace_id: int,
+    date_from: str = Body(...),
+    date_to: str = Body(...),
+    recipient_emails: List[str] = Body(...),
+    support_staff_id: Optional[int] = Body(None),
+    send_individual_reports: bool = Body(False, description="Send personalized reports to each staff member"),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Send activity report via email
+
+    If send_individual_reports=True:
+    - Each staff member receives only their own activities
+    - Managers/Executives in recipient list receive full report
+
+    If send_individual_reports=False (default):
+    - All recipients receive the same full report
+    """
+    # Check if user is workspace member
+    is_member = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id,
+        WorkspaceMember.user_id == current_user.id
+    ).first()
+
+    if not is_member:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a member of this workspace"
+        )
+
+    # Build query
+    query = db.query(FieldActivity).filter(
+        FieldActivity.workspace_id == workspace_id
+    )
+
+    # Apply filters
+    if date_from:
+        query = query.filter(FieldActivity.activity_date >= date_from)
+    if date_to:
+        query = query.filter(FieldActivity.activity_date <= date_to)
+    if support_staff_id:
+        query = query.filter(FieldActivity.support_staff_id == support_staff_id)
+
+    # Get activities
+    activities = query.order_by(
+        FieldActivity.activity_date,
+        FieldActivity.start_time
+    ).all()
+
+    if not activities:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No activities found for the specified criteria"
+        )
+
+    if send_individual_reports:
+        # Send personalized reports to each workspace member
+        return await _send_individual_reports(
+            workspace_id, activities, date_from, date_to, db
+        )
+    else:
+        # Send same report to all recipients (original behavior)
+        return await _send_bulk_report(
+            activities, recipient_emails, date_from, date_to
+        )
+
+
+async def _send_bulk_report(
+    activities: List[FieldActivity],
+    recipient_emails: List[str],
+    date_from: str,
+    date_to: str
+):
+    """Send the same full report to all specified recipients"""
+    # Group activities by staff
+    activities_by_staff = {}
+    for activity in activities:
+        staff_id = activity.support_staff_id
+        if staff_id not in activities_by_staff:
+            activities_by_staff[staff_id] = {
+                'staff_name': activity.support_staff.full_name or activity.support_staff.username,
+                'activities': [],
+                'total_hours': 0
+            }
+
+        # Convert activity to dict
+        activity_dict = {
+            'id': activity.id,
+            'title': activity.title,
+            'activity_date': str(activity.activity_date),
+            'start_time': str(activity.start_time) if activity.start_time else '',
+            'end_time': str(activity.end_time) if activity.end_time else '',
+            'duration_hours': activity.duration_hours,
+            'customer_name': activity.customer_name,
+            'location': activity.location,
+            'task_description': activity.task_description,
+            'remarks': activity.remarks,
+            'customer_rep': activity.customer_rep,
+        }
+
+        activities_by_staff[staff_id]['activities'].append(activity_dict)
+        activities_by_staff[staff_id]['total_hours'] += activity.duration_hours or 0
+
+    # Convert to list
+    activities_list = list(activities_by_staff.values())
+
+    # Calculate summary
+    total_hours = sum(a.duration_hours or 0 for a in activities)
+    unique_customers = len(set(a.customer_name for a in activities))
+    unique_staff = len(activities_by_staff)
+
+    summary = {
+        'total_activities': len(activities),
+        'total_hours': total_hours,
+        'unique_customers': unique_customers,
+        'unique_staff': unique_staff
+    }
+
+    # Generate subject
+    subject = f"Weekly Activity Report - {date_from} to {date_to}"
+
+    # Send email
+    result = send_activity_report_email(
+        to_emails=recipient_emails,
+        subject=subject,
+        activities_by_staff=activities_list,
+        date_from=date_from,
+        date_to=date_to,
+        summary=summary,
+        resend_api_key=settings.RESEND_API_KEY,
+        from_email=settings.RESEND_FROM_EMAIL,
+        from_name=settings.RESEND_FROM_NAME,
+        frontend_url=settings.FRONTEND_URL
+    )
+
+    if not result['success']:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=result.get('error', 'Failed to send email')
+        )
+
+    return {
+        'message': result['message'],
+        'email_id': result.get('email_id')
+    }
+
+
+async def _send_individual_reports(
+    workspace_id: int,
+    activities: List[FieldActivity],
+    date_from: str,
+    date_to: str,
+    db: Session
+):
+    """
+    Send personalized reports to each staff member
+    - Team members get only their activities
+    - Managers/Executives get full reports
+    """
+    # Get all workspace members with their user info
+    members = db.query(WorkspaceMember, User).join(
+        User, WorkspaceMember.user_id == User.id
+    ).filter(
+        WorkspaceMember.workspace_id == workspace_id
+    ).all()
+
+    if not members:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No members found in workspace"
+        )
+
+    # Group activities by staff for easy lookup
+    activities_by_staff_id = {}
+    all_activities_list = []
+
+    for activity in activities:
+        staff_id = activity.support_staff_id
+        if staff_id not in activities_by_staff_id:
+            activities_by_staff_id[staff_id] = {
+                'staff_name': activity.support_staff.full_name or activity.support_staff.username,
+                'activities': [],
+                'total_hours': 0
+            }
+
+        activity_dict = {
+            'id': activity.id,
+            'title': activity.title,
+            'activity_date': str(activity.activity_date),
+            'start_time': str(activity.start_time) if activity.start_time else '',
+            'end_time': str(activity.end_time) if activity.end_time else '',
+            'duration_hours': activity.duration_hours,
+            'customer_name': activity.customer_name,
+            'location': activity.location,
+            'task_description': activity.task_description,
+            'remarks': activity.remarks,
+            'customer_rep': activity.customer_rep,
+        }
+
+        activities_by_staff_id[staff_id]['activities'].append(activity_dict)
+        activities_by_staff_id[staff_id]['total_hours'] += activity.duration_hours or 0
+
+    all_activities_list = list(activities_by_staff_id.values())
+
+    # Calculate full summary for managers/executives
+    total_hours = sum(a.duration_hours or 0 for a in activities)
+    unique_customers = len(set(a.customer_name for a in activities))
+    unique_staff = len(activities_by_staff_id)
+
+    full_summary = {
+        'total_activities': len(activities),
+        'total_hours': total_hours,
+        'unique_customers': unique_customers,
+        'unique_staff': unique_staff
+    }
+
+    sent_count = 0
+    failed_count = 0
+    errors = []
+
+    # Send reports to each member
+    for member, user in members:
+        if not user.email:
+            continue  # Skip users without email
+
+        try:
+            # Check user role
+            is_manager_or_exec = user.role in [UserRole.MANAGER, UserRole.EXECUTIVE]
+
+            if is_manager_or_exec:
+                # Send full report to managers/executives
+                subject = f"Weekly Activity Report - All Staff ({date_from} to {date_to})"
+                activities_to_send = all_activities_list
+                summary_to_send = full_summary
+            else:
+                # Send only their activities to team members
+                user_activities = activities_by_staff_id.get(user.id)
+
+                if not user_activities:
+                    # No activities for this user, skip
+                    continue
+
+                subject = f"Your Weekly Activity Report ({date_from} to {date_to})"
+                activities_to_send = [user_activities]
+                summary_to_send = {
+                    'total_activities': len(user_activities['activities']),
+                    'total_hours': user_activities['total_hours'],
+                    'unique_customers': len(set(a['customer_name'] for a in user_activities['activities'])),
+                    'unique_staff': 1
+                }
+
+            # Send email
+            result = send_activity_report_email(
+                to_emails=[user.email],
+                subject=subject,
+                activities_by_staff=activities_to_send,
+                date_from=date_from,
+                date_to=date_to,
+                summary=summary_to_send,
+                resend_api_key=settings.RESEND_API_KEY,
+                from_email=settings.RESEND_FROM_EMAIL,
+                from_name=settings.RESEND_FROM_NAME,
+                frontend_url=settings.FRONTEND_URL
+            )
+
+            if result['success']:
+                sent_count += 1
+            else:
+                failed_count += 1
+                errors.append(f"{user.email}: {result.get('error', 'Unknown error')}")
+
+        except Exception as e:
+            failed_count += 1
+            errors.append(f"{user.email}: {str(e)}")
+
+    return {
+        'message': f'Individual reports sent to {sent_count} member(s)',
+        'sent_count': sent_count,
+        'failed_count': failed_count,
+        'errors': errors if errors else None
+    }
+
+
+@router.post("/trigger-weekly-report")
+async def trigger_weekly_report_manually(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role([UserRole.EXECUTIVE]))
+):
+    """
+    Manually trigger the weekly report job (Executives only)
+    Useful for testing the automated email system
+    """
+    from app.scheduler import send_weekly_reports
+
+    try:
+        await send_weekly_reports()
+        return {
+            'message': 'Weekly report job triggered successfully',
+            'timestamp': datetime.now().isoformat()
+        }
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f'Failed to trigger weekly report: {str(e)}'
+        )

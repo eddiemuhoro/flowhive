@@ -28,6 +28,24 @@ class Settings(BaseSettings):
     FROM_EMAIL: str = ""
     FROM_NAME: str = "Flowhive"
 
+    # Resend (for activity reports)
+    RESEND_API_KEY: str = ""
+    RESEND_FROM_EMAIL: str = ""
+    RESEND_FROM_NAME: str = "Crystaline Field Reports"
+
+    # Weekly Report Settings
+    WEEKLY_REPORT_ENABLED: bool = True
+    WEEKLY_REPORT_DAY: int = 6  # 0=Monday, 6=Sunday
+    WEEKLY_REPORT_HOUR: int = 17  # 5 PM
+    WEEKLY_REPORT_RECIPIENTS: str = ""  # Comma-separated emails
+    WEEKLY_REPORT_TIMEZONE: str = "Africa/Nairobi"
+
+    @property
+    def weekly_report_recipients_list(self) -> List[str]:
+        if not self.WEEKLY_REPORT_RECIPIENTS:
+            return []
+        return [email.strip() for email in self.WEEKLY_REPORT_RECIPIENTS.split(",")]
+
     # File Upload
     UPLOAD_DIR: str = "./uploads"
     MAX_UPLOAD_SIZE: int = 10485760  # 10MB

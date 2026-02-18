@@ -1,17 +1,36 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
 from app.config import settings
 from app.api import (
-    auth, users, workspaces, projects, tasks, comments, 
+    auth, users, workspaces, projects, tasks, comments,
     attachments, analytics, websocket, field_operations, task_categories, meeting_minutes, customers
 )
 import os
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Lifespan context manager for startup and shutdown events
+    """
+    # Startup: Initialize scheduler
+    from app.scheduler import start_scheduler
+    start_scheduler()
+
+    yield
+
+    # Shutdown: Stop scheduler
+    from app.scheduler import shutdown_scheduler
+    shutdown_scheduler()
+
+
 app = FastAPI(
     title=settings.APP_NAME,
     version=settings.APP_VERSION,
-    description="Full-stack productivity app for task management"
+    description="Full-stack productivity app for task management",
+    lifespan=lifespan
 )
 
 # CORS
@@ -65,13 +84,13 @@ async def test_file_upload(
 ):
     """
     Test endpoint for file upload functionality in Swagger.
-    
+
     This endpoint accepts a single file upload and returns information about the uploaded file.
     Useful for testing file upload functionality without authentication.
     """
     contents = await file.read()
     file_size = len(contents)
-    
+
     return {
         "message": "File uploaded successfully",
         "filename": file.filename,
