@@ -54,6 +54,10 @@ export function useCreateFieldActivity() {
       queryClient.invalidateQueries({
         queryKey: ['field-activities', variables.workspace_id]
       })
+      // Invalidate analytics to update billing metrics
+      queryClient.invalidateQueries({
+        queryKey: ['field-analytics', variables.workspace_id]
+      })
     },
   })
 }
@@ -78,6 +82,10 @@ export function useUpdateFieldActivity() {
       queryClient.invalidateQueries({
         queryKey: ['field-activities', variables.workspaceId]
       })
+      // Invalidate analytics to update billing metrics
+      queryClient.invalidateQueries({
+        queryKey: ['field-analytics', variables.workspaceId]
+      })
     },
   })
 }
@@ -95,6 +103,10 @@ export function useDeleteFieldActivity() {
       // Invalidate the activities list
       queryClient.invalidateQueries({
         queryKey: ['field-activities', variables.workspaceId]
+      })
+      // Invalidate analytics to update billing metrics
+      queryClient.invalidateQueries({
+        queryKey: ['field-analytics', variables.workspaceId]
       })
     },
   })
