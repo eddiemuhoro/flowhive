@@ -51,7 +51,7 @@ async def send_weekly_reports():
         logger.info(f"Generating reports for period: {date_from} to {date_to}")
 
         # Get all active workspaces
-        workspaces = db.query(Workspace).filter(Workspace.is_active == True).all()
+        workspaces = db.query(Workspace).all()
 
         for workspace in workspaces:
             try:
