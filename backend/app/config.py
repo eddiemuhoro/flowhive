@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: str = "http://localhost:5173,http://localhost:3000,https://flowhive-crystal.vercel.app,https://flowhive.crystaline.co.ke"
 
     # Frontend URL for password reset emails
-    FRONTEND_URL: str = "http://localhost:5173"
+    FRONTEND_URL: str = "https://flowhive.crystaline.co.ke"
 
     # Email (optional - for password reset)
     SMTP_HOST: str = "smtp.gmail.com"
