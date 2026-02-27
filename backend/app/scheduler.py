@@ -32,21 +32,20 @@ async def send_weekly_reports():
         logger.info("Weekly reports disabled in settings")
         return
 
-    if not settings.weekly_report_recipients_list:
-        logger.warning("No recipients configured for weekly reports")
-        return
+    # Removed early return - we still send individual reports to workspace members
+    # even if weekly_report_recipients_list is empty
 
     db: Session = SessionLocal()
 
     try:
-        # Calculate last week's date range (Monday to Sunday)
+        # Calculate current week's date range (Monday to Sunday)
         today = datetime.now()
         days_since_monday = today.weekday()
-        last_monday = today - timedelta(days=days_since_monday + 7)
-        last_sunday = last_monday + timedelta(days=6)
+        this_monday = today - timedelta(days=days_since_monday)
+        this_sunday = this_monday + timedelta(days=6)
 
-        date_from = last_monday.strftime("%Y-%m-%d")
-        date_to = last_sunday.strftime("%Y-%m-%d")
+        date_from = this_monday.strftime("%Y-%m-%d")
+        date_to = this_sunday.strftime("%Y-%m-%d")
 
         logger.info(f"Generating reports for period: {date_from} to {date_to}")
 
