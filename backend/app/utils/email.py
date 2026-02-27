@@ -222,6 +222,67 @@ def generate_report_html(
             padding: 40px;
             box-shadow: 0 4px 6px rgba(0,0,0,0.07);
         }}
+
+        /* Mobile responsive styles */
+        @media only screen and (max-width: 600px) {{
+            body {{
+                padding: 8px !important;
+                margin: 0 !important;
+            }}
+            .container {{
+                padding: 16px !important;
+                border-radius: 8px !important;
+            }}
+            .header {{
+                padding-bottom: 16px !important;
+                margin-bottom: 20px !important;
+            }}
+            h1 {{
+                font-size: 24px !important;
+            }}
+            .summary {{
+                padding: 16px !important;
+            }}
+            .summary h2 {{
+                font-size: 18px !important;
+            }}
+            .stats-grid {{
+                grid-template-columns: 1fr 1fr !important;
+                gap: 10px !important;
+            }}
+            .stat {{
+                padding: 12px !important;
+            }}
+            .stat-value {{
+                font-size: 22px !important;
+            }}
+            .staff-header {{
+                padding: 16px !important;
+            }}
+            .staff-name {{
+                font-size: 18px !important;
+            }}
+            .activities-list {{
+                padding: 12px !important;
+            }}
+            .activity-card {{
+                padding: 14px !important;
+            }}
+            .activity-header {{
+                flex-direction: column !important;
+                gap: 8px !important;
+            }}
+            .activity-title {{
+                font-size: 16px !important;
+            }}
+            .detail-grid {{
+                grid-template-columns: 1fr !important;
+                gap: 8px !important;
+            }}
+            .description, .remarks {{
+                padding: 12px !important;
+            }}
+        }}
         .header {{
             border-bottom: 4px solid #2563eb;
             padding-bottom: 24px;
@@ -327,14 +388,16 @@ def generate_report_html(
         .activity-number {{
             background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
             color: white;
-            min-width: 36px;
+            width: 36px;
             height: 36px;
             border-radius: 50%;
-            display: inline-flex;
+            display: flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
             font-weight: 700;
             font-size: 15px;
+            line-height: 1;
             box-shadow: 0 2px 4px rgba(37, 99, 235, 0.3);
         }}
         .activity-title {{
