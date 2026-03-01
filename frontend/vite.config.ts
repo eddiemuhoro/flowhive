@@ -10,6 +10,9 @@ export default defineConfig({
     VitePWA({
       registerType: "autoUpdate",
       includeAssets: ["favicon.svg", "apple-touch-icon.svg"],
+      strategies: "injectManifest",
+      srcDir: "public",
+      filename: "sw.js",
       manifest: {
         name: "Flowhive - Productivity Platform",
         short_name: "Flowhive",
@@ -37,18 +40,6 @@ export default defineConfig({
         ],
         categories: ["productivity", "business"],
         screenshots: [],
-      },
-      workbox: {
-        // Minimal service worker - only handles updates, no caching
-        cleanupOutdatedCaches: true,
-        clientsClaim: true,
-        skipWaiting: true,
-        // Don't cache anything - users need to be online
-        globPatterns: ['manifest.webmanifest'],
-        // No runtime caching - all requests go to network
-        runtimeCaching: [],
-        // Reduce service worker size
-        navigationPreload: false,
       },
       devOptions: {
         enabled: true,
