@@ -13,7 +13,9 @@ import logging
 from app.database import SessionLocal
 from app.models.field_activity import FieldActivity
 from app.models.workspace import Workspace
+from app.models.user import User
 from app.services.field_activity_service import FieldActivityReportService
+from app.services.push_notification_service import PushNotificationService
 from app.config import settings
 
 logger = logging.getLogger(__name__)
@@ -125,6 +127,51 @@ async def send_weekly_reports():
         db.close()
 
 
+async def send_weekly_push_notifications():
+    """
+    Send push notifications to all users about their weekly email report
+    Runs every Monday at 8:00 AM
+    """
+    logger.info("Starting weekly push notification job...")
+
+    if not settings.WEEKLY_REPORT_ENABLED:
+        logger.info("Weekly push notifications skipped - reports disabled")
+        return
+
+    db: Session = SessionLocal()
+
+    try:
+        # Get all users
+        users = db.query(User).all()
+
+        sent_count = 0
+        failed_count = 0
+
+        for user in users:
+            try:
+                success = PushNotificationService.send_weekly_report_notification(
+                    db=db,
+                    user_id=user.id
+                )
+                if success:
+                    sent_count += 1
+                    logger.info(f"Push notification sent to {user.email}")
+                else:
+                    failed_count += 1
+
+            except Exception as e:
+                failed_count += 1
+                logger.error(f"Failed to send push notification to user {user.id}: {str(e)}")
+
+        logger.info(
+            f"Weekly push notification job completed: {sent_count} sent, {failed_count} failed"
+        )
+
+    except Exception as e:
+        logger.error(f"Error in weekly push notification job: {str(e)}")
+    finally:
+        db.close()
+
 
 def start_scheduler():
     """
@@ -151,11 +198,30 @@ def start_scheduler():
         replace_existing=True
     )
 
+    # Add Monday 8 AM push notification job
+    push_trigger = CronTrigger(
+        day_of_week=0,  # Monday
+        hour=8,
+        minute=0,
+        timezone=settings.WEEKLY_REPORT_TIMEZONE
+    )
+
+    scheduler.add_job(
+        send_weekly_push_notifications,
+        trigger=push_trigger,
+        id='weekly_push_notifications',
+        name='Send Weekly Push Notifications',
+        replace_existing=True
+    )
+
     scheduler.start()
     logger.info(
         f"Scheduler started - Weekly reports will run on "
         f"day {settings.WEEKLY_REPORT_DAY} at {settings.WEEKLY_REPORT_HOUR}:00 "
         f"{settings.WEEKLY_REPORT_TIMEZONE}"
+    )
+    logger.info(
+        f"Push notifications will run every Monday at 8:00 AM {settings.WEEKLY_REPORT_TIMEZONE}"
     )
 
 

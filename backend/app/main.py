@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from app.config import settings
 from app.api import (
     auth, users, workspaces, projects, tasks, comments,
-    attachments, analytics, websocket, field_operations, task_categories, meeting_minutes, customers
+    attachments, analytics, websocket, field_operations, task_categories, meeting_minutes, customers, push_notifications
 )
 import os
 
@@ -62,6 +62,7 @@ app.include_router(field_operations.router, prefix="/api/field-activities", tags
 app.include_router(task_categories.router, prefix="/api/task-categories", tags=["Task Categories"])
 app.include_router(meeting_minutes.router, prefix="/api/meeting-minutes", tags=["Meeting Minutes"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
+app.include_router(push_notifications.router, prefix="/api/push", tags=["Push Notifications"])
 
 
 @app.get("/")
