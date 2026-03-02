@@ -13,6 +13,10 @@ export default defineConfig({
       strategies: "injectManifest",
       srcDir: "public",
       filename: "sw.js",
+      injectManifest: {
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,webp,woff,woff2}'],
+        maximumFileSizeToCacheInBytes: 5000000,
+      },
       manifest: {
         name: "Flowhive - Productivity Platform",
         short_name: "Flowhive",
@@ -43,7 +47,6 @@ export default defineConfig({
       },
       devOptions: {
         enabled: true,
-        type: "module",
       },
     }),
   ],

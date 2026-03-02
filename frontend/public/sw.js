@@ -1,11 +1,16 @@
 /**
  * Custom Service Worker for Flowhive PWA
- * Handles push notifications
+ * Handles push notifications and precaching
  */
 
-// Install event
+// Workbox will inject the precache manifest here
+// The variable assignment prevents it from being optimized away
+const precacheManifest = self.__WB_MANIFEST || []
+
+// Install event - cache the precache manifest
 self.addEventListener('install', (event) => {
   console.log('Service Worker: Installing...')
+  console.log('Precaching', precacheManifest.length, 'files')
   self.skipWaiting()
 })
 
