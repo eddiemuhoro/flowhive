@@ -154,7 +154,20 @@ class PushService {
     try {
       const registration = await navigator.serviceWorker.ready
       const subscription = await registration.pushManager.getSubscription()
-      return subscription !== null
+
+      if (!subscription) {
+        return false
+      }
+
+      // Verify with backend that subscription is active
+      try {
+        const response = await apiClient.get('/push/subscription-status')
+        return response.data.subscribed === true
+      } catch (error) {
+        // If backend check fails, trust browser subscription
+        console.warn('Failed to verify subscription with backend, using browser status')
+        return true
+      }
     } catch (error) {
       console.error('Failed to check subscription status:', error)
       return false

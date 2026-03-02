@@ -68,9 +68,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { pushService } from '@/services/push.service'
+import { useAuthStore } from '@/stores/auth'
 
+const authStore = useAuthStore()
 const showPrompt = ref(false)
 const loading = ref(false)
 const error = ref('')
@@ -80,7 +82,23 @@ onMounted(async () => {
   await checkShouldShow()
 })
 
+// Watch for authentication changes
+watch(() => authStore.isAuthenticated, async (isAuthenticated) => {
+  if (isAuthenticated) {
+    // User just logged in - check if we should show prompt
+    await checkShouldShow()
+  } else {
+    // User logged out - hide prompt
+    showPrompt.value = false
+  }
+})
+
 async function checkShouldShow() {
+  // Don't show if user is not authenticated
+  if (!authStore.isAuthenticated) {
+    return
+  }
+
   // Don't show if notifications not supported
   if (!pushService.isSupported()) {
     return
@@ -92,21 +110,30 @@ async function checkShouldShow() {
     return
   }
 
-  // Don't show if user previously dismissed (check localStorage)
-  const dismissed = localStorage.getItem('push-notification-dismissed')
-  if (dismissed) {
-    return
-  }
-
   // Check permission status
   const permission = pushService.getPermissionStatus()
 
-  // Only show if permission is default (not yet asked)
-  if (permission === 'default') {
-    showPrompt.value = true
-  } else if (permission === 'denied') {
-    // Already denied - don't show prompt
+  // Don't show if user explicitly denied permission
+  if (permission === 'denied') {
     return
+  }
+
+  // Don't show if user previously dismissed (check localStorage)
+  // const dismissed = localStorage.getItem('push-notification-dismissed')
+  // if (dismissed) {
+  //   const expiryDate = new Date(dismissed)
+  //   // Check if dismissal has expired
+  //   if (expiryDate > new Date()) {
+  //     return
+  //   }
+  // }
+
+  // Show prompt if:
+  // 1. Permission is 'default' (not yet asked), OR
+  // 2. Permission is 'granted' but user is not subscribed
+  //    (e.g., they granted permission before feature was implemented)
+  if (permission === 'default' || (permission === 'granted' && !isSubscribed)) {
+    showPrompt.value = true
   }
 }
 
@@ -117,12 +144,14 @@ async function enableNotifications() {
   try {
     await pushService.subscribe()
     showPrompt.value = false
+    // Clear any previous dismissal since user successfully subscribed
+    localStorage.removeItem('push-notification-dismissed')
 
     // Show success message (optional)
     console.log('Push notifications enabled successfully')
 
   } catch (err: any) {
-    error.value = err.message || 'Failed to enable notifications'
+    error.value = err.message || 'Failed to enable notifications. Please try again.'
     console.error('Failed to enable push notifications:', err)
   } finally {
     loading.value = false
@@ -131,9 +160,13 @@ async function enableNotifications() {
 
 function dismiss() {
   showPrompt.value = false
-  // Remember dismissal for 7 days
-  const expiryDate = new Date()
-  expiryDate.setDate(expiryDate.getDate() + 7)
-  localStorage.setItem('push-notification-dismissed', expiryDate.toISOString())
+  // Only remember dismissal if user is authenticated
+  if (authStore.isAuthenticated) {
+    // Remember dismissal for 7 days
+    const expiryDate = new Date()
+    expiryDate.setDate(expiryDate.getDate() + 7)
+    localStorage.setItem('push-notification-dismissed', expiryDate.toISOString())
+  }
+  // If not authenticated, don't save dismissal so prompt shows again after login
 }
 </script>
