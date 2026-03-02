@@ -26,6 +26,44 @@ router = APIRouter()
 
 ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp", "image/heic"}
 
+# Special cross-workspace access configuration
+WORKSPACE_DEV_TEAM = 2
+WORKSPACE_FIELD_TEAM = 7
+
+
+def check_workspace_access(workspace_id: int, current_user: User, db: Session) -> None:
+    """
+    Check if user has access to a workspace.
+    Special case: Allow cross-access between workspace 2 (Dev Team) and workspace 7 (Field Team)
+    """
+    # Check if user is workspace member
+    is_member = db.query(WorkspaceMember).filter(
+        WorkspaceMember.workspace_id == workspace_id,
+        WorkspaceMember.user_id == current_user.id
+    ).first()
+
+    # If already a member, grant access
+    if is_member:
+        return
+
+    # Special case: Allow cross-access between workspace 2 and workspace 7
+    if workspace_id in [WORKSPACE_DEV_TEAM, WORKSPACE_FIELD_TEAM]:
+        # Check if user is member of the other workspace
+        other_workspace_id = WORKSPACE_FIELD_TEAM if workspace_id == WORKSPACE_DEV_TEAM else WORKSPACE_DEV_TEAM
+        is_member_of_linked = db.query(WorkspaceMember).filter(
+            WorkspaceMember.workspace_id == other_workspace_id,
+            WorkspaceMember.user_id == current_user.id
+        ).first()
+        
+        if is_member_of_linked:
+            return
+
+    # No access granted
+    raise HTTPException(
+        status_code=status.HTTP_403_FORBIDDEN,
+        detail="Not a member of this workspace"
+    )
+
 
 @router.post("/", response_model=FieldActivityResponse, status_code=status.HTTP_201_CREATED)
 async def create_field_activity(
@@ -101,17 +139,8 @@ async def get_workspace_field_activities(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get all field activities for a workspace with optional filters"""
-    # Check if user is workspace member
-    is_member = db.query(WorkspaceMember).filter(
-        WorkspaceMember.workspace_id == workspace_id,
-        WorkspaceMember.user_id == current_user.id
-    ).first()
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this workspace"
-        )
+    # Check workspace access (includes special cross-workspace permissions)
+    check_workspace_access(workspace_id, current_user, db)
 
     # Build query with filters
     query = db.query(FieldActivity).filter(FieldActivity.workspace_id == workspace_id)
@@ -181,17 +210,8 @@ async def get_field_activity(
             detail="Field activity not found"
         )
 
-    # Check if user is workspace member
-    is_member = db.query(WorkspaceMember).filter(
-        WorkspaceMember.workspace_id == activity.workspace_id,
-        WorkspaceMember.user_id == current_user.id
-    ).first()
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this workspace"
-        )
+    # Check workspace access (includes special cross-workspace permissions)
+    check_workspace_access(activity.workspace_id, current_user, db)
 
     # Check if user has permission to view this activity based on category role
     if activity.task_category_id:
@@ -422,17 +442,8 @@ async def get_field_activity_analytics(
     current_user: User = Depends(require_role([UserRole.MANAGER, UserRole.EXECUTIVE]))
 ):
     """Get analytics for field activities (managers/executives only)"""
-    # Check if user is workspace member
-    is_member = db.query(WorkspaceMember).filter(
-        WorkspaceMember.workspace_id == workspace_id,
-        WorkspaceMember.user_id == current_user.id
-    ).first()
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this workspace"
-        )
+    # Check workspace access (includes special cross-workspace permissions)
+    check_workspace_access(workspace_id, current_user, db)
 
     # Build base query
     query = db.query(FieldActivity).filter(FieldActivity.workspace_id == workspace_id)
@@ -638,17 +649,8 @@ async def send_activity_report(
     If send_individual_reports=False (default):
     - All recipients receive the same full report
     """
-    # Check if user is workspace member
-    is_member = db.query(WorkspaceMember).filter(
-        WorkspaceMember.workspace_id == workspace_id,
-        WorkspaceMember.user_id == current_user.id
-    ).first()
-
-    if not is_member:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not a member of this workspace"
-        )
+    # Check workspace access (includes special cross-workspace permissions)
+    check_workspace_access(workspace_id, current_user, db)
 
     # Build query
     query = db.query(FieldActivity).filter(
