@@ -5,11 +5,12 @@ Push Notification API Endpoints
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
-from typing import Optional
+from typing import Optional, List
 
 from app.database import get_db
 from app.models.user import User
 from app.models.push_subscription import PushSubscription
+from app.services.push_notification_service import PushNotificationService
 from app.utils.auth import get_current_active_user
 
 router = APIRouter()
@@ -106,3 +107,97 @@ async def get_vapid_public_key():
         )
 
     return {"publicKey": settings.VAPID_PUBLIC_KEY}
+
+
+@router.get("/subscription-status")
+async def get_subscription_status(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Check if current user has active push subscription
+    """
+    subscription = db.query(PushSubscription).filter(
+        PushSubscription.user_id == current_user.id,
+        PushSubscription.active == True
+    ).first()
+
+    return {
+        "subscribed": subscription is not None,
+        "count": db.query(PushSubscription).filter(
+            PushSubscription.user_id == current_user.id,
+            PushSubscription.active == True
+        ).count()
+    }
+
+
+class SendNotificationRequest(BaseModel):
+    title: str
+    body: str
+    user_ids: Optional[List[int]] = None  # If None, send to all active users
+    icon: Optional[str] = None
+    url: Optional[str] = None
+
+
+@router.post("/send")
+async def send_notification(
+    notification: SendNotificationRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Send push notification to specified users or all active users
+    """
+    # Determine recipients
+    if notification.user_ids:
+        users = db.query(User).filter(
+            User.id.in_(notification.user_ids),
+            User.is_active == True
+        ).all()
+    else:
+        users = db.query(User).filter(User.is_active == True).all()
+
+    if not users:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="No active users found"
+        )
+
+    # Send notifications
+    success_count = 0
+    failed_count = 0
+    results = []
+
+    for user in users:
+        try:
+            # Prepare additional data
+            data = {}
+            if notification.icon:
+                data["icon"] = notification.icon
+            if notification.url:
+                data["url"] = notification.url
+
+            result = PushNotificationService.send_notification(
+                db=db,
+                user_id=user.id,
+                title=notification.title,
+                message=notification.body,
+                data=data if data else None
+            )
+            if result:
+                success_count += 1
+                results.append({"user_id": user.id, "status": "sent"})
+            else:
+                failed_count += 1
+                results.append({"user_id": user.id, "status": "failed"})
+        except Exception as e:
+            failed_count += 1
+            results.append({"user_id": user.id, "status": "error", "message": str(e)})
+
+    return {
+        "message": f"Notifications sent to {success_count} user(s), {failed_count} failed",
+        "total_users": len(users),
+        "success_count": success_count,
+        "failed_count": failed_count,
+        "results": results
+    }
