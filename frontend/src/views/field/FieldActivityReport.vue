@@ -281,10 +281,7 @@
       </div>
 
       <!-- Empty State -->
-      <div
-        v-else
-        class="rounded-lg bg-white p-12 text-center shadow-sm"
-      >
+      <div v-else class="rounded-lg bg-white p-12 text-center shadow-sm">
         <svg
           class="mx-auto h-12 w-12 text-gray-400"
           fill="none"
@@ -360,10 +357,18 @@
 
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-2">
-                  {{ sendIndividualReports ? '📨 Additional Recipients (Optional)' : '📮 Recipient Emails' }}
+                  {{
+                    sendIndividualReports
+                      ? "📨 Additional Recipients (Optional)"
+                      : "📮 Recipient Emails"
+                  }}
                 </label>
-                <p v-if="sendIndividualReports" class="text-xs text-gray-500 mb-2">
-                  These recipients will receive the full report in addition to workspace members
+                <p
+                  v-if="sendIndividualReports"
+                  class="text-xs text-gray-500 mb-2"
+                >
+                  These recipients will receive the full report in addition to
+                  workspace members
                 </p>
                 <div class="space-y-2">
                   <input
@@ -388,7 +393,7 @@
               <div class="rounded-lg bg-gray-50 p-3">
                 <p class="text-sm text-gray-700">
                   <strong>Report Period:</strong>
-                  {{ dateFrom || 'All' }} to {{ dateTo || 'Today' }}
+                  {{ dateFrom || "All" }} to {{ dateTo || "Today" }}
                 </p>
                 <p class="text-sm text-gray-700 mt-1">
                   <strong>Activities:</strong> {{ filteredActivities.length }}
@@ -413,10 +418,10 @@
                 </button>
                 <button
                   type="submit"
-                  :disabled="isSendingEmail || recipientEmails.some(e => !e)"
+                  :disabled="isSendingEmail || recipientEmails.some((e) => !e)"
                   class="flex-1 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {{ isSendingEmail ? 'Sending...' : 'Send Email' }}
+                  {{ isSendingEmail ? "Sending..." : "Send Email" }}
                 </button>
               </div>
             </div>
@@ -451,7 +456,7 @@ const dateTo = ref<string | undefined>(undefined);
 
 // Email modal state
 const showEmailModal = ref(false);
-const recipientEmails = ref<string[]>(['']);
+const recipientEmails = ref<string[]>([""]);
 const sendIndividualReports = ref(false);
 const isSendingEmail = ref(false);
 const emailError = ref<string | null>(null);
@@ -467,7 +472,7 @@ const filters = computed<FieldActivityFilters>(() => ({
 // Fetch activities
 const { data: activitiesData, isLoading } = useFieldActivities(
   currentWorkspaceId,
-  filters
+  filters,
 );
 
 const filteredActivities = computed(() => activitiesData.value || []);
@@ -477,7 +482,7 @@ const sortedActivities = computed(() => {
   return [...filteredActivities.value].sort((a, b) => {
     const dateCompare = a.activity_date.localeCompare(b.activity_date);
     if (dateCompare !== 0) return dateCompare;
-    return (a.start_time || '').localeCompare(b.start_time || '');
+    return (a.start_time || "").localeCompare(b.start_time || "");
   });
 });
 
@@ -486,10 +491,9 @@ const reportSummary = computed(() => {
   const activities = filteredActivities.value;
   const totalHours = activities.reduce(
     (sum, a) => sum + (a.duration_hours || 0),
-    0
+    0,
   );
-  const uniqueCustomers = new Set(activities.map((a) => a.customer_name))
-    .size;
+  const uniqueCustomers = new Set(activities.map((a) => a.customer_name)).size;
   const uniqueStaff = new Set(activities.map((a) => a.support_staff_id)).size;
 
   // Category breakdown
@@ -520,7 +524,7 @@ const reportSummary = computed(() => {
     uniqueCustomers,
     uniqueStaff,
     categoryBreakdown: Array.from(categoryMap.values()).sort(
-      (a, b) => b.count - a.count
+      (a, b) => b.count - a.count,
     ),
   };
 });
@@ -637,7 +641,7 @@ const handlePrint = () => {
 
 // Email modal functions
 const addRecipient = () => {
-  recipientEmails.value.push('');
+  recipientEmails.value.push("");
 };
 
 const closeEmailModal = () => {
@@ -653,9 +657,10 @@ const sendEmailReport = async () => {
 
   try {
     // If sending individual reports, emails are optional (will use workspace members)
-    const validEmails = recipientEmails.value.filter(e => e.trim());
+    const validEmails = recipientEmails.value.filter((e) => e.trim());
     if (!sendIndividualReports.value && validEmails.length === 0) {
-      emailError.value = 'Please enter at least one email address or enable individual reports';
+      emailError.value =
+        "Please enter at least one email address or enable individual reports";
       isSendingEmail.value = false;
       return;
     }
@@ -681,11 +686,12 @@ const sendEmailReport = async () => {
     // Reset and close after 2 seconds
     setTimeout(() => {
       closeEmailModal();
-      recipientEmails.value = [''];
+      recipientEmails.value = [""];
       sendIndividualReports.value = false;
     }, 2000);
   } catch (error: any) {
-    emailError.value = error.response?.data?.detail || error.message || 'Failed to send email';
+    emailError.value =
+      error.response?.data?.detail || error.message || "Failed to send email";
   } finally {
     isSendingEmail.value = false;
   }
