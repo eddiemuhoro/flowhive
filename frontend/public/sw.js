@@ -5,78 +5,76 @@
 
 // Workbox will inject the precache manifest here
 // The variable assignment prevents it from being optimized away
-const precacheManifest = self.__WB_MANIFEST || []
+const precacheManifest = self.__WB_MANIFEST || [];
 
 // Install event - cache the precache manifest
-self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...')
-  console.log('Precaching', precacheManifest.length, 'files')
-  self.skipWaiting()
-})
+self.addEventListener("install", (event) => {
+  console.log("Service Worker: Installing...");
+  console.log("Precaching", precacheManifest.length, "files");
+  self.skipWaiting();
+});
 
 // Activate event
-self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...')
-  event.waitUntil(self.clients.claim())
-})
+self.addEventListener("activate", (event) => {
+  console.log("Service Worker: Activating...");
+  event.waitUntil(self.clients.claim());
+});
 
 // Push notification event
-self.addEventListener('push', (event) => {
-  console.log('Push notification received', event)
+self.addEventListener("push", (event) => {
+  console.log("Push notification received", event);
 
   if (!event.data) {
-    return
+    return;
   }
 
-  const data = event.data.json()
+  const data = event.data.json();
 
   const options = {
-    body: data.message || 'You have a new notification',
-    icon: data.icon || '/icon-192x192.svg',
-    badge: data.badge || '/icon-192x192.svg',
-    tag: data.tag || 'notification',
+    body: data.message || "You have a new notification",
+    icon: data.icon || "/icon-192x192.svg",
+    badge: data.badge || "/icon-192x192.svg",
+    tag: data.tag || "notification",
     data: {
-      url: data.url || '/',
-      ...data
+      url: data.url || "/",
+      ...data,
     },
     requireInteraction: false,
-    vibrate: [200, 100, 200]
-  }
+    vibrate: [200, 100, 200],
+  };
 
   event.waitUntil(
-    self.registration.showNotification(
-      data.title || 'Flowhive',
-      options
-    )
-  )
-})
+    self.registration.showNotification(data.title || "Flowhive", options),
+  );
+});
 
 // Notification click event
-self.addEventListener('notificationclick', (event) => {
-  console.log('Notification clicked', event)
+self.addEventListener("notificationclick", (event) => {
+  console.log("Notification clicked", event);
 
-  event.notification.close()
+  event.notification.close();
 
-  const url = event.notification.data?.url || '/'
+  const url = event.notification.data?.url || "/";
 
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
+    clients
+      .matchAll({ type: "window", includeUncontrolled: true })
       .then((clientList) => {
         // Check if there's already a window open
         for (const client of clientList) {
-          if (client.url.includes(url) && 'focus' in client) {
-            return client.focus()
+          if (client.url.includes(url) && "focus" in client) {
+            return client.focus();
           }
         }
         // Open new window if none exists
         if (clients.openWindow) {
-          return clients.openWindow(url)
+          return clients.openWindow(url);
         }
-      })
-  )
-})
+      }),
+  );
+});
 
 // Notification close event (optional tracking)
-self.addEventListener('notificationclose', (event) => {
-  console.log('Notification closed', event)
-})
+self.addEventListener("notificationclose", (event) => {
+  console.log("Notification closed", event);
+});
