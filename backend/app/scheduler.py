@@ -40,14 +40,16 @@ async def send_weekly_reports():
     db: Session = SessionLocal()
 
     try:
-        # Calculate current week's date range (Monday to Sunday)
+        # Calculate last week's date range (Monday to Sunday)
         today = datetime.now()
         days_since_monday = today.weekday()
         this_monday = today - timedelta(days=days_since_monday)
-        this_sunday = this_monday + timedelta(days=6)
+        # Get last week by subtracting 7 days
+        last_monday = this_monday - timedelta(days=7)
+        last_sunday = last_monday + timedelta(days=6)
 
-        date_from = this_monday.strftime("%Y-%m-%d")
-        date_to = this_sunday.strftime("%Y-%m-%d")
+        date_from = last_monday.strftime("%Y-%m-%d")
+        date_to = last_sunday.strftime("%Y-%m-%d")
 
         logger.info(f"Generating reports for period: {date_from} to {date_to}")
 
