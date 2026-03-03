@@ -27,7 +27,6 @@ async def search_users(
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
     skip: int = 0,
-    limit: int = 100,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
 ):
@@ -38,7 +37,7 @@ async def get_users(
             detail="Not enough permissions"
         )
 
-    users = db.query(User).offset(skip).limit(limit).all()
+    users = db.query(User).offset(skip).all()
     return users
 
 
@@ -49,7 +48,7 @@ async def get_user(
     current_user: User = Depends(get_current_active_user)
 ):
     """Get a specific user"""
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.get(User, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -72,7 +71,7 @@ async def update_user(
             detail="Not enough permissions"
         )
 
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.get(User, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -104,7 +103,7 @@ async def delete_user(
     current_user: User = Depends(require_role([UserRole.EXECUTIVE]))
 ):
     """Delete a user (executives only)"""
-    user = db.query(User).filter(User.id == user_id).first()
+    user = db.get(User, user_id)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
