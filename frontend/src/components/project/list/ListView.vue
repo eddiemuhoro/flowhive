@@ -4,12 +4,36 @@
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assignee</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-            <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Task
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Status
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Priority
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Assignee
+            </th>
+            <th
+              class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Due Date
+            </th>
+            <th
+              class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+            >
+              Actions
+            </th>
           </tr>
         </thead>
         <tbody class="bg-white divide-y divide-gray-200">
@@ -20,8 +44,15 @@
             @click="$emit('taskClick', task.id)"
           >
             <td class="px-6 py-4">
-              <div class="text-sm font-medium text-gray-900">{{ task.title }}</div>
-              <div v-if="task.description" class="text-sm text-gray-500 line-clamp-1">{{ task.description }}</div>
+              <div class="text-sm font-medium text-gray-900">
+                {{ task.title }}
+              </div>
+              <div
+                v-if="task.description"
+                class="text-sm text-gray-500 line-clamp-1"
+              >
+                {{ task.description }}
+              </div>
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
               <select
@@ -53,20 +84,32 @@
               </select>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-              {{ task.assignee_name || 'Unassigned' }}
+              {{ task.assignee_name || "Unassigned" }}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-              <span v-if="task.due_date" class="text-xs" :class="getDueDateClass(task.due_date)">
+              <span
+                v-if="task.due_date"
+                class="text-xs"
+                :class="getDueDateClass(task.due_date)"
+              >
                 {{ formatDueDate(task.due_date) }}
               </span>
               <span v-else class="text-xs text-gray-400">No deadline</span>
             </td>
-            <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+            <td
+              class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+            >
               <button
                 @click.stop="$emit('taskEdit', task)"
                 class="text-primary-600 hover:text-primary-900"
               >
                 Edit
+              </button>
+              <button
+                @click.stop="$emit('taskDelete', task.id)"
+                class="ml-4 text-red-600 hover:text-red-900"
+              >
+                Delete
               </button>
             </td>
           </tr>
@@ -82,21 +125,23 @@
 </template>
 
 <script setup lang="ts">
-import { type Task } from '@/types/task'
-import { useTaskFormatting } from '@/composables/useTaskFormatting'
+import { type Task } from "@/types/task";
+import { useTaskFormatting } from "@/composables/useTaskFormatting";
 
 interface Props {
-  tasks: Task[]
+  tasks: Task[];
 }
 
-defineProps<Props>()
+defineProps<Props>();
 
 defineEmits<{
-  taskClick: [taskId: number]
-  taskEdit: [task: Task]
-  statusChange: [task: Task]
-  priorityChange: [task: Task]
-}>()
+  taskClick: [taskId: number];
+  taskEdit: [task: Task];
+  statusChange: [task: Task];
+  priorityChange: [task: Task];
+  taskDelete: [taskId: number];
+}>();
 
-const { formatDueDate, getDueDateClass, getPriorityClass, getStatusClass } = useTaskFormatting()
+const { formatDueDate, getDueDateClass, getPriorityClass, getStatusClass } =
+  useTaskFormatting();
 </script>
