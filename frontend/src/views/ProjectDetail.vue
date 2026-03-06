@@ -43,6 +43,7 @@
                 </svg>
               </button>
               <button
+                v-if="authStore.user?.email === 'eddiemuhoro@gmail.com'"
                 @click="currentView = 'list'"
                 class="px-3 py-1.5 text-sm font-medium rounded transition-colors"
                 :class="
