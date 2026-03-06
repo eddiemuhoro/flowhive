@@ -52,18 +52,57 @@ async def create_task(
 
     return task
 
-@router.get("/github-commits", response_model=List[Dict])
-async def get_github_commits(
+@router.get("/github-repos", response_model=List[Dict])
+async def get_github_repos(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Get recent commits from GitHub for the user's linked repositories
+    Get list of GitHub repositories accessible to the user
     """
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
-            # fetch from my private repo flowhive
             response = await client.get(
-                f"{Settings().GITHUB_API_URL}/{Settings().GITHUB_REPO_OWNER}/{Settings().GITHUB_REPO_NAME}/commits",
+                f"{Settings().GITHUB_API_URL}/user/repos?per_page=100&sort=updated",
+                headers={"Authorization": f"Bearer {Settings().GITHUB_API_TOKEN}"}
+            )
+            response.raise_for_status()
+            repos = response.json()
+            return [
+                {
+                    "name": repo["name"],
+                    "full_name": repo["full_name"],
+                    "owner": repo["owner"]["login"],
+                    "description": repo.get("description", ""),
+                    "private": repo["private"],
+                    "url": repo["html_url"]
+                }
+                for repo in repos
+            ]
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to fetch repos from GitHub: {str(e)}"
+        )
+
+
+@router.get("/github-commits", response_model=List[Dict])
+async def get_github_commits(
+    repo_owner: str = Query(..., description="Repository owner"),
+    repo_name: str = Query(..., description="Repository name"),
+    since: Optional[str] = Query(None, description="Only commits after this date (ISO 8601)"),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get recent commits from GitHub for the specified repository
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=100"
+            if since:
+                url += f"&since={since}"
+
+            response = await client.get(
+                url,
                 headers={"Authorization": f"Bearer {Settings().GITHUB_API_TOKEN}"}
             )
             response.raise_for_status()
@@ -73,9 +112,10 @@ async def get_github_commits(
                         "sha": commit["sha"],
                         "message": commit["commit"]["message"],
                         "url": commit["html_url"],
-                        "date": commit["commit"]["author"]["date"]
+                        "date": commit["commit"]["author"]["date"],
+                        "author": commit["commit"]["author"]["name"]
                     }
-                    for commit in commits                
+                    for commit in commits
             ]
     except httpx.HTTPError as e:
         raise HTTPException(
@@ -87,6 +127,9 @@ async def get_github_commits(
 @router.post("/create-tasks-from-github", response_model=List[TaskResponse])
 async def create_tasks_from_github_commits(
     project_id: int = Query(..., description="Project ID to create tasks in"),
+    repo_owner: str = Query(..., description="Repository owner"),
+    repo_name: str = Query(..., description="Repository name"),
+    commit_shas: Optional[List[str]] = Query(None, description="Specific commit SHAs to import"),
     since: Optional[str] = Query(None, description="Only commits after this date (ISO 8601)"),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_active_user)
@@ -94,6 +137,7 @@ async def create_tasks_from_github_commits(
     """
     Fetch recent GitHub commits and create tasks from them.
     Use this at the end of the day to automatically log your work as tasks.
+    Can either import specific commits by SHA or all commits since a date.
     """
     # Verify project exists and user has access
     from app.models.project import Project
@@ -103,21 +147,25 @@ async def create_tasks_from_github_commits(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Project not found"
         )
-    
+
     try:
         # Fetch commits from GitHub
         async with httpx.AsyncClient(timeout=30.0) as client:
-            url = f"{Settings().GITHUB_API_URL}/{Settings().GITHUB_REPO_OWNER}/{Settings().GITHUB_REPO_NAME}/commits?author={current_user.username}&per_page=100"
+            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=100"
             if since:
                 url += f"&since={since}"
-            
+
             response = await client.get(
                 url,
                 headers={"Authorization": f"Bearer {Settings().GITHUB_API_TOKEN}"}
             )
             response.raise_for_status()
             commits = response.json()
-        
+
+        # Filter commits by SHA if specific commits were requested
+        if commit_shas:
+            commits = [c for c in commits if c["sha"] in commit_shas]
+
         # Create tasks from commits
         created_tasks = []
         for commit in commits:
@@ -125,14 +173,14 @@ async def create_tasks_from_github_commits(
             commit_sha = commit["sha"][:7]  # Short SHA
             commit_url = commit["html_url"]
             commit_date = commit["commit"]["author"]["date"]
-            
+
             # Parse commit date and calculate start date (2 days before commit)
             commit_datetime = datetime.fromisoformat(commit_date.replace('Z', '+00:00'))
             start_datetime = commit_datetime - timedelta(days=2)
-            
+
             # Create description with commit details
             description = f"{commit_message}\n\nCommit: {commit_sha}\nURL: {commit_url}\nDate: {commit_date}"
-            
+
             # Create task
             task = Task(
                 title=commit_message.split('\n')[0][:255],  # First line as title, limit to 255 chars
@@ -144,21 +192,21 @@ async def create_tasks_from_github_commits(
                 due_date=commit_datetime,  # Due date is the commit date
                 start_date=start_datetime  # Start date is 2 days before commit
             )
-            
+
             db.add(task)
             db.flush()  # Get the task ID
-            
+
             # Log activity
             log_activity(db, task.id, current_user.id, "created_from_github", {
                 "title": task.title,
                 "commit_sha": commit_sha,
                 "commit_url": commit_url
             })
-            
+
             created_tasks.append(task)
-        
+
         db.commit()
-        
+
         # Refresh and prepare response
         response_tasks = []
         for task in created_tasks:
@@ -167,9 +215,9 @@ async def create_tasks_from_github_commits(
             if task.creator:
                 task_response.creator_name = task.creator.full_name or task.creator.username
             response_tasks.append(task_response)
-        
+
         return response_tasks
-        
+
     except httpx.HTTPError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -205,8 +253,8 @@ async def get_tasks(
     if status:
         query = query.filter(Task.status == status)
 
-    tasks = query.offset(skip).limit(limit).all()
-    
+    tasks = query.order_by(Task.updated_at.desc()).offset(skip).limit(limit).all()
+
     response_tasks = []
     for task in tasks:
         task_response = TaskResponse.model_validate(task)
@@ -214,9 +262,9 @@ async def get_tasks(
             task_response.assignee_name = task.assignee.full_name or task.assignee.username
         if task.creator:
             task_response.creator_name = task.creator.full_name or task.creator.username
-        
+
         response_tasks.append(task_response)
-        
+
     return response_tasks
 
 
@@ -233,7 +281,7 @@ async def get_my_tasks(
         query = query.filter(Task.status == status)
 
     tasks = query.all()
-    
+
     # Enrich tasks with names
     response_tasks = []
     for task in tasks:
@@ -243,7 +291,7 @@ async def get_my_tasks(
         if task.creator:
             task_response.creator_name = task.creator.full_name or task.creator.username
         response_tasks.append(task_response)
-    
+
     return response_tasks
 
 
