@@ -44,17 +44,48 @@ export const taskService = {
 
   async createTasksFromGithub(
     projectId: number,
+    repoOwner: string,
+    repoName: string,
+    commitShas?: string[],
     since?: string,
   ): Promise<Task[]> {
-    const params: Record<string, string> = { project_id: projectId.toString() };
+    const params: Record<string, any> = {
+      project_id: projectId.toString(),
+      repo_owner: repoOwner,
+      repo_name: repoName,
+    };
     if (since) {
       params.since = since;
+    }
+    if (commitShas && commitShas.length > 0) {
+      params.commit_shas = commitShas;
     }
     const response = await apiClient.post<Task[]>(
       "/tasks/create-tasks-from-github",
       null,
       { params },
     );
+    return response.data;
+  },
+
+  async getGithubCommits(
+    repoOwner: string,
+    repoName: string,
+    since?: string,
+  ): Promise<any[]> {
+    const params: Record<string, string> = {
+      repo_owner: repoOwner,
+      repo_name: repoName,
+    };
+    if (since) {
+      params.since = since;
+    }
+    const response = await apiClient.get("/tasks/github-commits", { params });
+    return response.data;
+  },
+
+  async getGithubRepos(): Promise<any[]> {
+    const response = await apiClient.get("/tasks/github-repos");
     return response.data;
   },
 };

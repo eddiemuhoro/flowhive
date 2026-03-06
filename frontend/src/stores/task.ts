@@ -177,12 +177,21 @@ export const useTaskStore = defineStore("task", () => {
     }
   }
 
-  async function createTasksFromGithub(projectId: number, since?: string) {
+  async function createTasksFromGithub(
+    projectId: number,
+    repoOwner: string,
+    repoName: string,
+    commitShas?: string[],
+    since?: string,
+  ) {
     try {
       loading.value = true;
       error.value = null;
       const createdTasks = await taskService.createTasksFromGithub(
         projectId,
+        repoOwner,
+        repoName,
+        commitShas,
         since,
       );
       // Add created tasks to the store
@@ -191,6 +200,38 @@ export const useTaskStore = defineStore("task", () => {
     } catch (err: any) {
       error.value =
         err.response?.data?.detail || "Failed to import tasks from GitHub";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchGithubCommits(
+    repoOwner: string,
+    repoName: string,
+    since?: string,
+  ) {
+    try {
+      loading.value = true;
+      error.value = null;
+      return await taskService.getGithubCommits(repoOwner, repoName, since);
+    } catch (err: any) {
+      error.value =
+        err.response?.data?.detail || "Failed to fetch GitHub commits";
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  }
+
+  async function fetchGithubRepos() {
+    try {
+      loading.value = true;
+      error.value = null;
+      return await taskService.getGithubRepos();
+    } catch (err: any) {
+      error.value =
+        err.response?.data?.detail || "Failed to fetch GitHub repositories";
       throw err;
     } finally {
       loading.value = false;
@@ -217,5 +258,7 @@ export const useTaskStore = defineStore("task", () => {
     fetchAttachments,
     uploadAttachment,
     createTasksFromGithub,
+    fetchGithubCommits,
+    fetchGithubRepos,
   };
 });

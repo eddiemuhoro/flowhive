@@ -8,14 +8,15 @@ export function useDevTasks() {
   const isLoading = ref(false);
   const error = ref<string | null>(null);
 
-  const fetchTasks = async (projectId?: number, status?: string) => {
+  const fetchTasks = async (projectId?: number, status?: string, assigneeId?: number) => {
     isLoading.value = true;
     error.value = null;
 
     try {
-      const params: { project_id?: number; status?: string } = {};
+      const params: { project_id?: number; status?: string; assignee_id?: number } = {};
       if (projectId) params.project_id = projectId;
       if (status) params.status = status;
+      if (assigneeId) params.assignee_id = assigneeId;
 
       tasks.value = await taskService.getTasks(params);
     } catch (err: any) {
