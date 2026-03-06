@@ -55,10 +55,10 @@
         </div>
       </div>
 
-      <!-- Filter -->
+      <!-- Filters -->
       <div class="rounded-lg bg-white p-4 shadow-sm">
-        <div class="flex items-center space-x-4">
-          <div class="flex-1">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">
               Filter by Status
             </label>
@@ -67,12 +67,32 @@
               @change="loadTasks"
               class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none"
             >
-              <option value="">All Tasks</option>
+              <option value="">All Statuses</option>
               <option value="todo">To Do</option>
               <option value="in_progress">In Progress</option>
               <option value="in_review">In Review</option>
               <option value="completed">Completed</option>
               <option value="blocked">Blocked</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Person
+            </label>
+            <select
+              v-model="selectedAssignee"
+              @change="loadTasks"
+              :disabled="isLoadingUsers"
+              class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none disabled:opacity-50"
+            >
+              <option :value="undefined">All People</option>
+              <option
+                v-for="user in users"
+                :key="user.id"
+                :value="user.id"
+              >
+                {{ user.full_name || user.username }}
+              </option>
             </select>
           </div>
         </div>
@@ -168,7 +188,7 @@
                     class="mt-3 flex items-center space-x-4 text-sm text-gray-500"
                   >
                     <div
-                      v-if="task.assignee_name"
+                      v-if="task.assignee_name || task.creator_name"
                       class="flex items-center space-x-1"
                     >
                       <svg
@@ -184,13 +204,12 @@
                           d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
                         />
                       </svg>
-                      <span>{{ task.assignee_name }}</span>
+                      <span>{{ task.assignee_name || task.creator_name }}</span>
                     </div>
 
                     <div
-                      v-if="task.due_date"
+                      v-if="(task.status === 'completed' && task.updated_at) || ((task.status === 'todo' || task.status === 'in_progress') && task.due_date)"
                       class="flex items-center space-x-1"
-                      :class="{ 'text-red-600': isOverdue(task.due_date) }"
                     >
                       <svg
                         class="h-4 w-4"
@@ -205,9 +224,11 @@
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
-                      <span>{{ formatDate(task.due_date) }}</span>
-                      <span v-if="isOverdue(task.due_date)" class="font-medium">
-                        (Overdue)
+                      <span v-if="task.status === 'completed'">
+                        {{ formatDate(task.updated_at) }}
+                      </span>
+                      <span v-else-if="(task.status === 'todo' || task.status === 'in_progress') && task.due_date" :class="isOverdue(task.due_date) ? 'text-red-600' : ''">
+                        Due {{ formatDate(task.due_date) }}
                       </span>
                     </div>
 
@@ -266,14 +287,34 @@
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useDevTasks } from "@/composables/useDevTasks";
+import { userService } from "@/services/user.service";
+import type { User } from "@/types/auth";
 
 const router = useRouter();
 const { tasks, isLoading, error, fetchTasks, summary } = useDevTasks();
 
 const selectedStatus = ref<string>("");
+const selectedAssignee = ref<number | undefined>(undefined);
+const users = ref<User[]>([]);
+const isLoadingUsers = ref(false);
+
+const loadUsers = async () => {
+  isLoadingUsers.value = true;
+  try {
+    users.value = await userService.getAllUsers();
+  } catch (err: any) {
+    console.error("Error loading users:", err);
+  } finally {
+    isLoadingUsers.value = false;
+  }
+};
 
 const loadTasks = async () => {
-  await fetchTasks(undefined, selectedStatus.value || undefined);
+  await fetchTasks(
+    undefined,
+    selectedStatus.value || undefined,
+    selectedAssignee.value
+  );
 };
 
 // Status badge styling
@@ -331,7 +372,8 @@ const isOverdue = (dueDate: string) => {
   return new Date(dueDate) < new Date();
 };
 
-onMounted(() => {
-  loadTasks();
+onMounted(async () => {
+  await loadUsers();
+  await loadTasks();
 });
 </script>
