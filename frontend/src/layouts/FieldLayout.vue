@@ -466,11 +466,11 @@ const navItems = computed(() => {
       label: "Reports",
       icon: ReportsIcon,
     },
-    // {
-    //   path: "/field/dev-tasks",
-    //   label: "Dev Tasks",
-    //   icon: CodeIcon,
-    // },
+    {
+      path: "/field/dev-tasks",
+      label: "Dev Tasks",
+      icon: CodeIcon,
+    },
     {
       path: "/field/minutes",
       label: "Minutes",
