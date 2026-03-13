@@ -63,7 +63,12 @@ export const taskService = {
     const response = await apiClient.post<Task[]>(
       "/tasks/create-tasks-from-github",
       null,
-      { params },
+      {
+        params,
+        paramsSerializer: {
+          indexes: null // this tells axios not to use brackets for arrays!
+        }
+      },
     );
     return response.data;
   },

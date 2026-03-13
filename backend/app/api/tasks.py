@@ -151,7 +151,7 @@ async def create_tasks_from_github_commits(
     try:
         # Fetch commits from GitHub
         async with httpx.AsyncClient(timeout=30.0) as client:
-            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=5"
+            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=10"
             if since:
                 url += f"&since={since}"
 
