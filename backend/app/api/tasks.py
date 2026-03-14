@@ -12,6 +12,7 @@ from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, TaskDetailRes
 from app.utils.auth import get_current_active_user
 from app.config import Settings
 import json
+import random
 
 router = APIRouter()
 
@@ -151,7 +152,7 @@ async def create_tasks_from_github_commits(
     try:
         # Fetch commits from GitHub
         async with httpx.AsyncClient(timeout=30.0) as client:
-            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=10"
+            url = f"{Settings().GITHUB_API_URL}/{repo_owner}/{repo_name}/commits?author={current_user.username}&per_page=100"
             if since:
                 url += f"&since={since}"
 
@@ -178,8 +179,34 @@ async def create_tasks_from_github_commits(
             commit_datetime = datetime.fromisoformat(commit_date.replace('Z', '+00:00'))
             start_datetime = commit_datetime - timedelta(days=2)
 
-            # Create description with commit details
-            description = f"{commit_message}\n\nCommit: {commit_sha}\nURL: {commit_url}\nDate: {commit_date}"
+            # Create description with a human-readable conversational tone
+            friendly_date = commit_datetime.strftime("%B %d, %Y at %I:%M %p")
+            
+            # Use random templates to make it look less automated
+            templates = [
+                f"I pushed these changes to GitHub on {friendly_date}. You can review the code for commit {commit_sha} here: {commit_url}",
+                f"Finished up this work and committed it to GitHub at {commit_url}. The commit hash is {commit_sha} from {friendly_date}.",
+                f"Here's the link to the commit for this work: {commit_url} (SHA: {commit_sha}). Pushed on {friendly_date}.",
+                f"Work for this is done! Checked into GitHub on {friendly_date}. View the changes here: {commit_url}",
+                f"Completed this task. The code was pushed to GitHub on {friendly_date} in commit {commit_sha}.\nLink: {commit_url}",
+                f"Code is merged and pushed. You can check commit {commit_sha} from {friendly_date} right here: {commit_url}",
+                f"Just wrapped this up. Changes are live on GitHub as of {friendly_date}. Commit {commit_sha} -> {commit_url}",
+                f"Done and dusted. Sent this to GitHub on {friendly_date}. Catch the details here: {commit_url} (Commit: {commit_sha})",
+                f"Pushed the final tweaks for this on {friendly_date}. Repo link: {commit_url} if you want to see commit {commit_sha}.",
+                f"Knocked this out on {friendly_date}. The commit is {commit_sha}, check it out at {commit_url}",
+                f"All set here. Pushed to the repo on {friendly_date}. Code changes are at {commit_url}",
+                f"Got this merged. Pushed it up on {friendly_date} with commit {commit_sha}. {commit_url}",
+                f"This one is good to go! Checked it in on {friendly_date}. Here's the Github link: {commit_url}",
+                f"Wrapping this task up. The code went out on {friendly_date} - take a look at {commit_url} (Commit: {commit_sha})",
+                f"Successfully committed on {friendly_date}. You'll find it here: {commit_url}",
+                f"Made some progress and pushed it up on {friendly_date}. The commit was {commit_sha}. Details: {commit_url}",
+                f"Code is officially up on Github. Pushed on {friendly_date}. Link: {commit_url}",
+                f"Finished the implementation for this. Shipped it on {friendly_date} ({commit_sha}). {commit_url}",
+                f"Committed those changes on {friendly_date}. Give it a look here: {commit_url}",
+                f"This is handled. Pushed my updates on {friendly_date} via {commit_sha}. Link: {commit_url}"
+            ]
+            
+            description = f"{commit_message}\n\n{random.choice(templates)}"
 
             # Create task
             task = Task(

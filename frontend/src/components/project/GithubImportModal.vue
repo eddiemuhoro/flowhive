@@ -37,7 +37,10 @@
             </select>
 
             <!-- Custom repo inputs -->
-            <div v-if="selectedRepoOption === 'custom'" class="grid grid-cols-2 gap-2">
+            <div
+              v-if="selectedRepoOption === 'custom'"
+              class="grid grid-cols-2 gap-2"
+            >
               <input
                 v-model="customRepoOwner"
                 type="text"
@@ -280,8 +283,8 @@ const taskStore = useTaskStore();
 const sinceDate = ref<string>("");
 const repos = ref<Repo[]>([]);
 const selectedRepoOption = ref<string>("custom");
-const customRepoOwner = ref<string>("");
-const customRepoName = ref<string>("");
+const customRepoOwner = ref<string>("eddiemuhoro");
+const customRepoName = ref<string>("flowhive");
 const commits = ref<Commit[]>([]);
 const selectedCommits = ref<string[]>([]);
 const isLoadingRepos = ref(false);
@@ -303,8 +306,8 @@ watch(
       commits.value = [];
       selectedCommits.value = [];
       selectedRepoOption.value = "custom";
-      customRepoOwner.value = "";
-      customRepoName.value = "";
+      customRepoOwner.value = "eddiemuhoro";
+      customRepoName.value = "flowhive";
       error.value = null;
     }
   },
