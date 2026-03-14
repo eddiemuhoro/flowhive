@@ -187,6 +187,7 @@ async def create_tasks_from_github_commits(
                 description=description,
                 project_id=project_id,
                 creator_id=current_user.id,
+                assignee_id=current_user.id,
                 status=TaskStatus.COMPLETED,  # Mark as completed since work is done
                 completed_at=commit_datetime,
                 due_date=commit_datetime,  # Due date is the commit date

@@ -87,7 +87,7 @@
             >
               <option :value="undefined">All People</option>
               <option
-                v-for="user in users"
+                v-for="user in activeUsers"
                 :key="user.id"
                 :value="user.id"
               >
@@ -208,7 +208,12 @@
                     </div>
 
                     <div
-                      v-if="(task.status === 'completed' && task.updated_at) || ((task.status === 'todo' || task.status === 'in_progress') && task.due_date)"
+                      v-if="
+                        (task.status === 'completed' && task.updated_at) ||
+                        ((task.status === 'todo' ||
+                          task.status === 'in_progress') &&
+                          task.due_date)
+                      "
                       class="flex items-center space-x-1"
                     >
                       <svg
@@ -227,7 +232,14 @@
                       <span v-if="task.status === 'completed'">
                         {{ formatDate(task.updated_at) }}
                       </span>
-                      <span v-else-if="(task.status === 'todo' || task.status === 'in_progress') && task.due_date" :class="isOverdue(task.due_date) ? 'text-red-600' : ''">
+                      <span
+                        v-else-if="
+                          (task.status === 'todo' ||
+                            task.status === 'in_progress') &&
+                          task.due_date
+                        "
+                        :class="isOverdue(task.due_date) ? 'text-red-600' : ''"
+                      >
                         Due {{ formatDate(task.due_date) }}
                       </span>
                     </div>
@@ -284,7 +296,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRouter } from "vue-router";
 import { useDevTasks } from "@/composables/useDevTasks";
 import { userService } from "@/services/user.service";
@@ -296,7 +308,12 @@ const { tasks, isLoading, error, fetchTasks, summary } = useDevTasks();
 const selectedStatus = ref<string>("");
 const selectedAssignee = ref<number | undefined>(undefined);
 const users = ref<User[]>([]);
+const activeUserIds = ref<Set<number>>(new Set());
 const isLoadingUsers = ref(false);
+
+const activeUsers = computed(() => {
+  return users.value.filter((user) => activeUserIds.value.has(user.id));
+});
 
 const loadUsers = async () => {
   isLoadingUsers.value = true;
@@ -313,8 +330,16 @@ const loadTasks = async () => {
   await fetchTasks(
     undefined,
     selectedStatus.value || undefined,
-    selectedAssignee.value
+    selectedAssignee.value,
   );
+
+  if (!selectedStatus.value && !selectedAssignee.value) {
+    const userIds = new Set<number>();
+    tasks.value.forEach((task) => {
+      if (task.assignee_id) userIds.add(task.assignee_id);
+    });
+    activeUserIds.value = userIds;
+  }
 };
 
 // Status badge styling
