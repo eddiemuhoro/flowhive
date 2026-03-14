@@ -66,8 +66,8 @@ export const taskService = {
       {
         params,
         paramsSerializer: {
-          indexes: null // this tells axios not to use brackets for arrays!
-        }
+          indexes: null, // this tells axios not to use brackets for arrays!
+        },
       },
     );
     return response.data;
