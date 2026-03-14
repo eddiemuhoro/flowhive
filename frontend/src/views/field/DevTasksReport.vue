@@ -152,7 +152,7 @@
 
           <div class="space-y-3">
             <div
-              v-for="task in tasks"
+              v-for="task in sortedTasks"
               :key="task.id"
               class="rounded-lg bg-white p-4 shadow-sm hover:shadow-md transition-shadow"
             >
@@ -179,7 +179,7 @@
 
                   <p
                     v-if="task.description"
-                    class="mt-2 text-sm text-gray-600 line-clamp-2"
+                    class="mt-2 text-sm text-gray-600 whitespace-pre-wrap"
                   >
                     {{ task.description }}
                   </p>
@@ -229,8 +229,11 @@
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                         />
                       </svg>
-                      <span v-if="task.status === 'completed'">
-                        {{ formatDate(task.updated_at) }}
+                      <span
+                        v-if="task.status === 'completed' && task.start_date"
+                      >
+                        {{ formatDate(task.start_date) }} -
+                        {{ formatDate(task.due_date) }}
                       </span>
                       <span
                         v-else-if="
@@ -315,6 +318,21 @@ const activeUsers = computed(() => {
   return users.value.filter((user) => activeUserIds.value.has(user.id));
 });
 
+// Sort tasks by start_date, newest first. Tasks without start_date will fall to the bottom.
+const sortedTasks = computed(() => {
+  return [...tasks.value].sort((a, b) => {
+    // Both missing start_date
+    if (!a.start_date && !b.start_date) return 0;
+    // a missing start_date, move to bottom
+    if (!a.start_date) return 1;
+    // b missing start_date, move to bottom
+    if (!b.start_date) return -1;
+
+    // Both have start_date, sort descending (newest first)
+    return new Date(b.start_date).getTime() - new Date(a.start_date).getTime();
+  });
+});
+
 const loadUsers = async () => {
   isLoadingUsers.value = true;
   try {
@@ -383,7 +401,8 @@ const formatPriority = (priority: string) => {
 };
 
 // Format date
-const formatDate = (dateString: string) => {
+const formatDate = (dateString?: string | null) => {
+  if (!dateString) return "";
   const date = new Date(dateString);
   return date.toLocaleDateString("en-US", {
     month: "short",
