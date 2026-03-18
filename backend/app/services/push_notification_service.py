@@ -24,18 +24,53 @@ class PushNotificationService:
 
     _vapid_instance = None
 
+    @staticmethod
+    def _normalize_private_key_pem(raw_key: str) -> str:
+        """Normalize VAPID private key loaded from environment.
+
+        Handles common .env formatting issues like surrounding quotes and
+        escaped newlines ("\\n") so py_vapid can parse the PEM correctly.
+        """
+        key = (raw_key or "").strip()
+
+        if not key:
+            return ""
+
+        # Remove wrapping quotes if present.
+        if (key.startswith('"') and key.endswith('"')) or (
+            key.startswith("'") and key.endswith("'")
+        ):
+            key = key[1:-1]
+
+        # Convert escaped newlines from .env into real line breaks.
+        if "\\n" in key:
+            key = key.replace("\\n", "\n")
+
+        # Ensure trailing newline so PEM parser sees final marker cleanly.
+        if not key.endswith("\n"):
+            key += "\n"
+
+        return key
+
     @classmethod
     def _get_vapid(cls):
         """Get or create VAPID instance"""
         if cls._vapid_instance is None:
+            private_key_pem = cls._normalize_private_key_pem(settings.VAPID_PRIVATE_KEY)
+            if not private_key_pem:
+                raise ValueError("VAPID_PRIVATE_KEY is empty or missing")
+
             # Write private key to temporary file and load from there
             # This workaround is needed because Vapid.from_string() doesn't handle PEM format correctly
             with tempfile.NamedTemporaryFile(mode='w', suffix='.pem', delete=False) as f:
-                f.write(settings.VAPID_PRIVATE_KEY)
+                f.write(private_key_pem)
                 temp_path = f.name
 
             try:
                 cls._vapid_instance = Vapid.from_file(temp_path)
+            except Exception as e:
+                logger.error("Failed to load VAPID private key. Check backend/.env VAPID_PRIVATE_KEY PEM formatting: %s", e)
+                raise
             finally:
                 os.unlink(temp_path)
 
