@@ -157,6 +157,20 @@ export const useTaskStore = defineStore("task", () => {
     }
   }
 
+  async function updateComment(commentId: number, content: string) {
+    try {
+      const updated = await commentService.updateComment(commentId, content);
+      const index = comments.value.findIndex((comment) => comment.id === commentId);
+      if (index !== -1) {
+        comments.value[index] = updated;
+      }
+      return updated;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || "Failed to update comment";
+      throw err;
+    }
+  }
+
   async function fetchAttachments(taskId: number) {
     try {
       attachments.value = await attachmentService.getTaskAttachments(taskId);
@@ -255,6 +269,7 @@ export const useTaskStore = defineStore("task", () => {
     deleteTask,
     fetchComments,
     addComment,
+    updateComment,
     fetchAttachments,
     uploadAttachment,
     createTasksFromGithub,

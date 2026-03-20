@@ -42,13 +42,64 @@
 
       <div class="bg-white shadow rounded-lg p-6">
         <h3 class="text-lg font-semibold mb-4">Comments</h3>
+        <form class="mb-4" @submit.prevent="handleAddComment">
+          <label for="newComment" class="block text-sm font-medium text-gray-700 mb-1">Add Comment</label>
+          <textarea
+            id="newComment"
+            v-model="newComment"
+            rows="3"
+            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+            placeholder="Write a comment..."
+          />
+          <div class="flex justify-end mt-2">
+            <button
+              type="submit"
+              :disabled="submittingComment || !newComment.trim()"
+              class="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50"
+            >
+              {{ submittingComment ? 'Posting...' : 'Post Comment' }}
+            </button>
+          </div>
+        </form>
         <div class="space-y-4">
           <div v-for="comment in taskStore.comments" :key="comment.id" class="border-l-2 border-gray-200 pl-4">
             <div class="flex items-center space-x-2 mb-1">
               <span class="text-sm font-medium">{{ comment.user_name }}</span>
               <span class="text-xs text-gray-500">{{ new Date(comment.created_at).toLocaleDateString() }}</span>
+              <button
+                v-if="canEditComment(comment)"
+                type="button"
+                class="text-xs text-primary-600 hover:text-primary-700"
+                @click="startEditComment(comment)"
+              >
+                Edit
+              </button>
             </div>
-            <p class="text-sm text-gray-700">{{ comment.content }}</p>
+            <div v-if="editingCommentId === comment.id" class="mt-2">
+              <textarea
+                v-model="editingContent"
+                rows="3"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+              />
+              <div class="flex justify-end space-x-2 mt-2">
+                <button
+                  type="button"
+                  class="px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50"
+                  @click="cancelEditComment"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  :disabled="updatingComment || !editingContent.trim()"
+                  class="px-3 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-50"
+                  @click="saveEditComment(comment.id)"
+                >
+                  {{ updatingComment ? 'Saving...' : 'Save' }}
+                </button>
+              </div>
+            </div>
+            <p v-else class="text-sm text-gray-700">{{ comment.content }}</p>
           </div>
         </div>
       </div>
@@ -157,14 +208,22 @@
 import { ref, onMounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { useTaskStore } from '@/stores/task'
+import { useAuthStore } from '@/stores/auth'
+import type { Comment } from '@/types/task'
 import { TaskStatus, TaskPriority } from '@/types/task'
 import { workspaceService } from '@/services/workspace.service'
 
 const route = useRoute()
 const taskStore = useTaskStore()
+const authStore = useAuthStore()
 
 const showEditModal = ref(false)
 const updating = ref(false)
+const submittingComment = ref(false)
+const updatingComment = ref(false)
+const newComment = ref('')
+const editingCommentId = ref<number | null>(null)
+const editingContent = ref('')
 const workspaceMembers = ref<any[]>([])
 const editForm = ref({
   title: '',
@@ -198,6 +257,54 @@ const getPriorityClass = (priority: string) => {
 
 const formatStatus = (status: string) => {
   return status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+}
+
+const canEditComment = (comment: Comment) => {
+  return comment.user_id === authStore.user?.id
+}
+
+const startEditComment = (comment: Comment) => {
+  editingCommentId.value = comment.id
+  editingContent.value = comment.content
+}
+
+const cancelEditComment = () => {
+  editingCommentId.value = null
+  editingContent.value = ''
+}
+
+const handleAddComment = async () => {
+  if (!taskStore.currentTask) return
+  const content = newComment.value.trim()
+  if (!content) return
+
+  try {
+    submittingComment.value = true
+    await taskStore.addComment({
+      content,
+      task_id: taskStore.currentTask.id
+    })
+    newComment.value = ''
+  } catch (error) {
+    console.error('Failed to add comment:', error)
+  } finally {
+    submittingComment.value = false
+  }
+}
+
+const saveEditComment = async (commentId: number) => {
+  const content = editingContent.value.trim()
+  if (!content) return
+
+  try {
+    updatingComment.value = true
+    await taskStore.updateComment(commentId, content)
+    cancelEditComment()
+  } catch (error) {
+    console.error('Failed to update comment:', error)
+  } finally {
+    updatingComment.value = false
+  }
 }
 
 const openEditModal = async () => {
