@@ -6,6 +6,7 @@ import {
 } from "vue-router";
 import { useAuthStore } from "@/stores/auth";
 import { useWorkspaceStore } from "@/stores/workspace";
+import { useAppStore } from "@/stores/app";
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -146,27 +147,17 @@ const router = createRouter({
   ],
 });
 
-// Track if auth has been initialized
-let authInitialized = false;
-
 router.beforeEach(
   async (
     to: RouteLocationNormalized,
     _from: RouteLocationNormalized,
     next: NavigationGuardNext,
   ) => {
+    const appStore = useAppStore();
     const authStore = useAuthStore();
     const workspaceStore = useWorkspaceStore();
 
-    // Wait for auth initialization on first navigation
-    if (!authInitialized) {
-      await authStore.initialize();
-      // Initialize workspace from localStorage after auth
-      if (authStore.isAuthenticated) {
-        await workspaceStore.initializeWorkspace();
-      }
-      authInitialized = true;
-    }
+    await appStore.bootstrap();
 
     if (to.meta.requiresAuth !== false && !authStore.isAuthenticated) {
       next({ name: "login", query: { redirect: to.fullPath } });
