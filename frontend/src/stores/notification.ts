@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { wsService } from '@/services/websocket.service'
+import { useAuthStore } from '@/stores/auth'
 
 export interface Notification {
   id: string
@@ -14,6 +15,7 @@ export interface Notification {
 export const useNotificationStore = defineStore('notification', () => {
   const notifications = ref<Notification[]>([])
   const connected = ref(false)
+  const authStore = useAuthStore()
 
   function connectWebSocket(workspaceId: number) {
     wsService.connect(workspaceId)
@@ -25,6 +27,7 @@ export const useNotificationStore = defineStore('notification', () => {
     wsService.on('task_deleted', handleTaskDeleted)
     wsService.on('comment_added', handleCommentAdded)
     wsService.on('task_assigned', handleTaskAssigned)
+    wsService.on('field_activity_comment_added', handleFieldActivityCommentAdded)
   }
 
   function disconnectWebSocket() {
@@ -69,6 +72,20 @@ export const useNotificationStore = defineStore('notification', () => {
       type: 'task_assigned',
       title: 'Task Assigned',
       message: `You have been assigned to ${data.title}`,
+    })
+  }
+
+  function handleFieldActivityCommentAdded(data: any) {
+    const currentUserId = authStore.user?.id
+    const targetUserIds = Array.isArray(data.target_user_ids) ? data.target_user_ids : []
+    if (!currentUserId || !targetUserIds.includes(currentUserId)) {
+      return
+    }
+
+    addNotification({
+      type: 'field_activity_comment_added',
+      title: 'New Activity Comment',
+      message: `${data.user_name} commented on a field activity`,
     })
   }
 

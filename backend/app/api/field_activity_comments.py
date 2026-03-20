@@ -1,4 +1,5 @@
 from typing import List
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
@@ -12,8 +13,18 @@ from app.schemas.field_activity import (
 from app.utils.auth import get_current_active_user
 from app.utils.sanitizer import sanitize_html
 from app.api.field_operations import check_workspace_access
+from app.api.websocket import notify_workspace
+from app.services.push_notification_service import PushNotificationService
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def format_comment_title(content: str, max_len: int = 80) -> str:
+    cleaned = " ".join((content or "").split())
+    if len(cleaned) <= max_len:
+        return cleaned
+    return f"{cleaned[:max_len - 1].rstrip()}…"
 
 
 def get_activity_or_404(activity_id: int, db: Session) -> FieldActivity:
@@ -115,6 +126,46 @@ async def create_activity_comment(
     response = FieldActivityCommentResponse.model_validate(comment)
     response.user_name = current_user.full_name or current_user.username
     response.user_avatar = current_user.avatar_url
+
+    await notify_workspace(activity.workspace_id, "field_activity_comment_added", {
+        "activity_id": activity.id,
+        "comment_id": comment.id,
+        "user_id": current_user.id,
+        "user_name": response.user_name,
+        "target_user_ids": [activity.created_by, activity.support_staff_id],
+    })
+
+    push_targets = {
+        activity.support_staff_id,
+        activity.created_by,
+    }
+
+    for user_id in push_targets:
+        try:
+            sent = PushNotificationService.send_notification(
+                db=db,
+                user_id=user_id,
+                title=format_comment_title(response.content) or "New Activity Comment",
+                message=f"{response.user_name} commented on {activity.title}",
+                data={
+                    "tag": f"field-activity-comment-{activity.id}",
+                    "url": f"/field/activities/{activity.id}",
+                },
+            )
+            logger.info(
+                "Push notification for field activity comment sent=%s user_id=%s activity_id=%s comment_id=%s",
+                sent,
+                user_id,
+                activity.id,
+                comment.id,
+            )
+        except Exception:
+            logger.exception(
+                "Failed to send push notification user_id=%s activity_id=%s comment_id=%s",
+                user_id,
+                activity.id,
+                comment.id,
+            )
 
     return response
 
