@@ -69,6 +69,7 @@ class FieldActivity(Base):
     updated_by_user = relationship("User", foreign_keys=[updated_by], backref="updated_field_activities")
     task_category = relationship("TaskCategory", back_populates="field_activities")
     photos = relationship("FieldActivityPhoto", back_populates="field_activity", cascade="all, delete-orphan")
+    comments = relationship("FieldActivityComment", back_populates="activity", cascade="all, delete-orphan")
 
     @property
     def duration_hours(self) -> float:
@@ -102,3 +103,19 @@ class FieldActivityPhoto(Base):
     # Relationships
     field_activity = relationship("FieldActivity", back_populates="photos")
     uploaded_by_user = relationship("User", backref="uploaded_field_photos")
+
+
+class FieldActivityComment(Base):
+    __tablename__ = "field_activity_comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    field_activity_id = Column(Integer, ForeignKey("field_activities.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    parent_comment_id = Column(Integer, ForeignKey("field_activity_comments.id"), nullable=True)
+    content = Column(Text, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    activity = relationship("FieldActivity", back_populates="comments")
+    user = relationship("User", backref="field_activity_comments")
+    parent_comment = relationship("FieldActivityComment", remote_side=[id], backref="replies")

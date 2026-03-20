@@ -76,6 +76,32 @@ class FieldActivityPhotoResponse(FieldActivityPhotoBase):
         from_attributes = True
 
 
+class FieldActivityCommentBase(BaseModel):
+    content: str
+
+
+class FieldActivityCommentCreate(FieldActivityCommentBase):
+    parent_comment_id: Optional[int] = None
+
+
+class FieldActivityCommentUpdate(BaseModel):
+    content: str
+
+
+class FieldActivityCommentResponse(FieldActivityCommentBase):
+    id: int
+    field_activity_id: int
+    user_id: int
+    parent_comment_id: Optional[int] = None
+    created_at: datetime
+    updated_at: datetime
+    user_name: Optional[str] = None
+    user_avatar: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 # FieldActivity Schemas
 class FieldActivityBase(BaseModel):
     activity_date: date

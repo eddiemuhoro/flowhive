@@ -9,7 +9,8 @@ from app.schemas.comment import CommentCreate, CommentUpdate, CommentResponse
 from app.schemas.field_activity import (
     TaskCategoryCreate, TaskCategoryUpdate, TaskCategoryResponse,
     FieldActivityCreate, FieldActivityUpdate, FieldActivityResponse,
-    FieldActivityDetailResponse, FieldActivityPhotoResponse
+    FieldActivityDetailResponse, FieldActivityPhotoResponse,
+    FieldActivityCommentCreate, FieldActivityCommentUpdate, FieldActivityCommentResponse
 )
 
 __all__ = [
@@ -28,4 +29,5 @@ __all__ = [
     "TaskCategoryCreate", "TaskCategoryUpdate", "TaskCategoryResponse",
     "FieldActivityCreate", "FieldActivityUpdate", "FieldActivityResponse",
     "FieldActivityDetailResponse", "FieldActivityPhotoResponse",
+    "FieldActivityCommentCreate", "FieldActivityCommentUpdate", "FieldActivityCommentResponse",
 ]

@@ -7,6 +7,7 @@ from app.api import (
     auth, users, workspaces, projects, tasks, comments,
     attachments, analytics, websocket, field_operations, task_categories, meeting_minutes, customers, push_notifications
 )
+from app.api import field_activity_comments
 import os
 
 
@@ -59,6 +60,7 @@ app.include_router(attachments.router, prefix="/api/attachments", tags=["Attachm
 app.include_router(analytics.router, prefix="/api/analytics", tags=["Analytics"])
 app.include_router(websocket.router, prefix="/api/ws", tags=["WebSocket"])
 app.include_router(field_operations.router, prefix="/api/field-activities", tags=["Field Operations"])
+app.include_router(field_activity_comments.router, prefix="/api/field-activities", tags=["Field Activity Comments"])
 app.include_router(task_categories.router, prefix="/api/task-categories", tags=["Task Categories"])
 app.include_router(meeting_minutes.router, prefix="/api/meeting-minutes", tags=["Meeting Minutes"])
 app.include_router(customers.router, prefix="/api/customers", tags=["Customers"])
