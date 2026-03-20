@@ -5,6 +5,8 @@ from app.models.task import Task, TaskStatus, TaskPriority
 from app.models.comment import Comment, Attachment, ActivityLog
 from app.models.field_activity import FieldActivity, FieldActivityPhoto, TaskCategory, LocationType
 from app.models.meeting_minute import MeetingMinute, MinuteAttachment, MinuteActionItem
+from app.models.customers import Licence
+from app.models.push_subscription import PushSubscription
 
 __all__ = [
     "User",
@@ -26,4 +28,6 @@ __all__ = [
     "MeetingMinute",
     "MinuteAttachment",
     "MinuteActionItem",
+    "Licence",
+    "PushSubscription"
 ]

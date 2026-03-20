@@ -1,7 +1,13 @@
 from typing import List, Dict
 from fastapi import APIRouter, Depends, HTTPException, status
 import httpx
+from app.database import get_db
+from sqlalchemy.orm import Session
 from app.models.user import User
+from app.models.customers import Licence
+from app.schemas.customers import (
+    LicenceCreate
+)
 from app.utils.auth import get_current_active_user
 
 router = APIRouter()
@@ -20,10 +26,10 @@ async def get_companies(
                 "https://company.sajsoft.co.ke/?action=getareportscompanies"
             )
             response.raise_for_status()
-            
+
             companies = response.json()
             return companies
-            
+
     except httpx.HTTPError as e:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
@@ -34,3 +40,17 @@ async def get_companies(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching companies: {str(e)}"
         )
+
+
+@router.post("/licences")
+async def create_licence(
+    licence_payload: LicenceCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Create a licence"""
+    licence = Licence(**licence_payload.model_dump())
+    db.add(licence)
+    db.commit()
+    db.refresh(licence)
+    return licence
