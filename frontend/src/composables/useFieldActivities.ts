@@ -89,7 +89,7 @@ export function useUpdateFieldActivityComment() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ commentId, activityId, data }: {
+    mutationFn: ({ commentId, data }: {
       commentId: number
       activityId: number
       data: FieldActivityCommentUpdate
