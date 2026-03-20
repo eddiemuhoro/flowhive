@@ -9,6 +9,8 @@ import type {
   FieldActivityDetail,
   FieldActivityFilters,
   FieldAnalytics,
+  FieldActivityComment,
+  FieldActivityCommentCreate,
 } from "@/types/field";
 
 export const fieldActivityService = {
@@ -142,6 +144,57 @@ export const fieldActivityService = {
       `/field-activities/workspace/${workspaceId}/assigned-by-me`,
     );
     return response.data;
+  },
+
+  /**
+   * Get comments for a field activity
+   * @param activityId - The activity ID
+   */
+  async getActivityComments(activityId: number): Promise<FieldActivityComment[]> {
+    const response = await apiClient.get<FieldActivityComment[]>(
+      `/field-activities/${activityId}/comments`,
+    );
+    return response.data;
+  },
+
+  /**
+   * Create a comment for a field activity
+   * @param activityId - The activity ID
+   * @param data - Comment data
+   */
+  async createActivityComment(
+    activityId: number,
+    data: FieldActivityCommentCreate,
+  ): Promise<FieldActivityComment> {
+    const response = await apiClient.post<FieldActivityComment>(
+      `/field-activities/${activityId}/comments`,
+      data,
+    );
+    return response.data;
+  },
+
+  /**
+   * Update a comment for a field activity
+   * @param commentId - The comment ID
+   * @param content - Updated content
+   */
+  async updateActivityComment(
+    commentId: number,
+    content: string,
+  ): Promise<FieldActivityComment> {
+    const response = await apiClient.patch<FieldActivityComment>(
+      `/field-activities/comments/${commentId}`,
+      { content },
+    );
+    return response.data;
+  },
+
+  /**
+   * Delete a comment for a field activity
+   * @param commentId - The comment ID
+   */
+  async deleteActivityComment(commentId: number): Promise<void> {
+    await apiClient.delete(`/field-activities/comments/${commentId}`);
   },
 
   /**

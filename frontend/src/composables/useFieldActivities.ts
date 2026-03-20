@@ -2,7 +2,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, unref, type MaybeRef } from 'vue'
 import { fieldActivityService } from '@/services/fieldActivity.service'
-import type { FieldActivityCreate, FieldActivityUpdate } from '@/types/field'
+import type {
+  FieldActivityCreate,
+  FieldActivityUpdate,
+  FieldActivityCommentCreate,
+  FieldActivityCommentUpdate,
+} from '@/types/field'
 
 /**
  * Query hook for fetching field activities with automatic caching
@@ -37,6 +42,80 @@ export function useFieldActivity(activityId: number, workspaceId: number) {
     queryFn: () => fieldActivityService.getActivity(activityId, workspaceId),
     staleTime: 5 * 60 * 1000, // 5 minutes cache
     enabled: !!activityId && !!workspaceId,
+  })
+}
+
+/**
+ * Query hook for fetching comments for a field activity
+ */
+export function useFieldActivityComments(
+  activityId: MaybeRef<number>,
+  enabled?: MaybeRef<boolean>
+) {
+  return useQuery({
+    queryKey: computed(() => ['field-activity-comments', unref(activityId)]),
+    queryFn: () => fieldActivityService.getActivityComments(unref(activityId)),
+    staleTime: 60 * 1000, // 1 minute cache
+    enabled: computed(() => {
+      const isEnabled = enabled ? !!unref(enabled) : true
+      return !!unref(activityId) && isEnabled
+    }),
+  })
+}
+
+/**
+ * Mutation hook for creating a field activity comment
+ */
+export function useCreateFieldActivityComment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ activityId, data }: {
+      activityId: number
+      data: FieldActivityCommentCreate
+    }) => fieldActivityService.createActivityComment(activityId, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['field-activity-comments', variables.activityId]
+      })
+    },
+  })
+}
+
+/**
+ * Mutation hook for updating a field activity comment
+ */
+export function useUpdateFieldActivityComment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ commentId, activityId, data }: {
+      commentId: number
+      activityId: number
+      data: FieldActivityCommentUpdate
+    }) => fieldActivityService.updateActivityComment(commentId, data.content),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['field-activity-comments', variables.activityId]
+      })
+    },
+  })
+}
+
+/**
+ * Mutation hook for deleting a field activity comment
+ */
+export function useDeleteFieldActivityComment() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ commentId }: { commentId: number; activityId: number }) =>
+      fieldActivityService.deleteActivityComment(commentId),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({
+        queryKey: ['field-activity-comments', variables.activityId]
+      })
+    },
   })
 }
 

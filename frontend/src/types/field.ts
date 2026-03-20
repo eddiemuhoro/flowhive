@@ -161,6 +161,27 @@ export interface FieldActivityDetail extends FieldActivity {
   photos: FieldActivityPhoto[];
 }
 
+export interface FieldActivityComment {
+  id: number;
+  field_activity_id: number;
+  user_id: number;
+  parent_comment_id: number | null;
+  content: string;
+  created_at: string;
+  updated_at: string;
+  user_name?: string | null;
+  user_avatar?: string | null;
+}
+
+export interface FieldActivityCommentCreate {
+  content: string;
+  parent_comment_id?: number | null;
+}
+
+export interface FieldActivityCommentUpdate {
+  content: string;
+}
+
 // Analytics Types
 export interface StaffHoursAnalytics {
   user_id: number;

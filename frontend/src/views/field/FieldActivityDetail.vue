@@ -188,6 +188,174 @@
           </div>
         </div>
 
+        <!-- Comments Section -->
+        <div class="rounded-lg bg-white p-6 shadow-sm">
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Comments</h2>
+          </div>
+
+          <div v-if="!isAssignedTask" class="rounded-md bg-yellow-50 p-4 text-sm text-yellow-800">
+            Comments are available only for assigned tasks.
+          </div>
+          <div v-else-if="!canUseComments" class="rounded-md bg-yellow-50 p-4 text-sm text-yellow-800">
+            Comments are visible only to the task creator and assignee.
+          </div>
+          <div v-else>
+            <form class="mb-4" @submit.prevent="handleAddComment">
+              <label for="newComment" class="block text-sm font-medium text-gray-700 mb-1">Add Comment</label>
+              <textarea
+                id="newComment"
+                v-model="newComment"
+                rows="3"
+                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                placeholder="Write a comment..."
+              />
+              <div class="flex justify-end mt-2">
+                <button
+                  type="submit"
+                  :disabled="creatingComment || !newComment.trim()"
+                  class="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {{ creatingComment ? 'Posting...' : 'Post Comment' }}
+                </button>
+              </div>
+            </form>
+
+            <div v-if="commentsLoading" class="py-6 text-center text-sm text-gray-600">
+              Loading comments...
+            </div>
+            <div v-else-if="rootComments.length === 0" class="py-6 text-center text-sm text-gray-600">
+              No comments yet.
+            </div>
+            <div v-else class="space-y-4">
+              <div
+                v-for="comment in rootComments"
+                :key="comment.id"
+                class="border-l-2 border-gray-200 pl-4"
+              >
+                <div class="flex items-center space-x-2 mb-1">
+                  <span class="text-sm font-medium">{{ comment.user_name || 'User' }}</span>
+                  <span class="text-xs text-gray-500">{{ formatCommentDate(comment.created_at) }}</span>
+                  <button
+                    type="button"
+                    class="text-xs text-blue-600 hover:text-blue-700"
+                    @click="startReply(comment.id)"
+                  >
+                    Reply
+                  </button>
+                  <button
+                    v-if="isCommentOwner(comment)"
+                    type="button"
+                    class="text-xs text-blue-600 hover:text-blue-700"
+                    @click="startEditComment(comment)"
+                  >
+                    Edit
+                  </button>
+                </div>
+
+                <div v-if="editingCommentId === comment.id" class="mt-2">
+                  <textarea
+                    v-model="editingContent"
+                    rows="3"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  />
+                  <div class="flex justify-end space-x-2 mt-2">
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50"
+                      @click="cancelEditComment"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="updatingComment || !editingContent.trim()"
+                      class="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      @click="saveEditComment(comment.id)"
+                    >
+                      {{ updatingComment ? 'Saving...' : 'Save' }}
+                    </button>
+                  </div>
+                </div>
+                <p v-else class="text-sm text-gray-700">{{ comment.content }}</p>
+
+                <div v-if="replyToCommentId === comment.id" class="mt-3">
+                  <textarea
+                    v-model="replyContent"
+                    rows="3"
+                    class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    placeholder="Write a reply..."
+                  />
+                  <div class="flex justify-end space-x-2 mt-2">
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50"
+                      @click="cancelReply"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      :disabled="creatingComment || !replyContent.trim()"
+                      class="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                      @click="handleReply(comment.id)"
+                    >
+                      {{ creatingComment ? 'Posting...' : 'Reply' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div v-if="repliesByParent[comment.id]?.length" class="mt-4 space-y-3">
+                  <div
+                    v-for="reply in repliesByParent[comment.id]"
+                    :key="reply.id"
+                    class="border-l-2 border-gray-100 pl-4"
+                  >
+                    <div class="flex items-center space-x-2 mb-1">
+                      <span class="text-sm font-medium">{{ reply.user_name || 'User' }}</span>
+                      <span class="text-xs text-gray-500">{{ formatCommentDate(reply.created_at) }}</span>
+                      <button
+                        v-if="isCommentOwner(reply)"
+                        type="button"
+                        class="text-xs text-blue-600 hover:text-blue-700"
+                        @click="startEditComment(reply)"
+                      >
+                        Edit
+                      </button>
+                    </div>
+
+                    <div v-if="editingCommentId === reply.id" class="mt-2">
+                      <textarea
+                        v-model="editingContent"
+                        rows="3"
+                        class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                      />
+                      <div class="flex justify-end space-x-2 mt-2">
+                        <button
+                          type="button"
+                          class="px-3 py-1.5 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50"
+                          @click="cancelEditComment"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          :disabled="updatingComment || !editingContent.trim()"
+                          class="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50"
+                          @click="saveEditComment(reply.id)"
+                        >
+                          {{ updatingComment ? 'Saving...' : 'Save' }}
+                        </button>
+                      </div>
+                    </div>
+                    <p v-else class="text-sm text-gray-700">{{ reply.content }}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Photos Section -->
         <div class="rounded-lg bg-white p-6 shadow-sm">
           <div class="mb-4 flex items-center justify-between">
@@ -285,12 +453,19 @@ import {
   useDeleteFieldActivity,
   useUploadActivityPhoto,
   useDeleteActivityPhoto,
+  useFieldActivityComments,
+  useCreateFieldActivityComment,
+  useUpdateFieldActivityComment,
 } from "@/composables/useFieldActivities";
 import CategoryBadge from "@/components/field/category/CategoryBadge.vue";
 import PhotoGallery from "@/components/field/photo/PhotoGallery.vue";
 import PhotoUpload from "@/components/field/photo/PhotoUpload.vue";
 import ActivityForm from "@/components/field/activity/ActivityForm.vue";
-import type { FieldActivityUpdate, FieldActivityCreate } from "@/types/field";
+import type {
+  FieldActivityUpdate,
+  FieldActivityCreate,
+  FieldActivityComment,
+} from "@/types/field";
 
 const route = useRoute();
 const router = useRouter();
@@ -311,12 +486,16 @@ const { mutate: updateActivity, isPending: isUpdating } = useUpdateFieldActivity
 const { mutate: deleteActivityMutation } = useDeleteFieldActivity();
 const { mutate: uploadPhoto } = useUploadActivityPhoto();
 const { mutate: deletePhotoMutation } = useDeleteActivityPhoto();
-
 const showEditForm = ref(false);
 const showPhotoUpload = ref(false);
 const uploadingPhotos = ref(false);
 const photoUploadRef = ref<any>(null);
 const formLoading = computed(() => isUpdating);
+const newComment = ref("");
+const replyToCommentId = ref<number | null>(null);
+const replyContent = ref("");
+const editingCommentId = ref<number | null>(null);
+const editingContent = ref("");
 
 const canEdit = computed(() => {
   if (!activity.value || !currentUser.value) return false;
@@ -329,6 +508,50 @@ const canEdit = computed(() => {
 });
 
 const canDelete = computed(() => canEdit.value);
+const isAssignedTask = computed(() => {
+  if (!activity.value) return false;
+  return activity.value.created_by !== activity.value.support_staff_id;
+});
+
+const canUseComments = computed(() => {
+  if (!activity.value || !currentUser.value) return false;
+  return (
+    isAssignedTask.value &&
+    [activity.value.created_by, activity.value.support_staff_id].includes(
+      currentUser.value.id,
+    )
+  );
+});
+
+const { data: comments, isLoading: commentsLoading } = useFieldActivityComments(
+  activityId,
+  computed(() => canUseComments.value)
+);
+const { mutate: createComment, isPending: creatingComment } = useCreateFieldActivityComment();
+const { mutate: updateComment, isPending: updatingComment } = useUpdateFieldActivityComment();
+
+const sortedComments = computed(() => {
+  return [...(comments.value || [])].sort(
+    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+  );
+});
+
+const rootComments = computed(() => {
+  return sortedComments.value.filter((comment) => !comment.parent_comment_id);
+});
+
+const repliesByParent = computed(() => {
+  const map: Record<number, FieldActivityComment[]> = {};
+  sortedComments.value.forEach((comment) => {
+    if (comment.parent_comment_id) {
+      if (!map[comment.parent_comment_id]) {
+        map[comment.parent_comment_id] = [];
+      }
+      map[comment.parent_comment_id].push(comment);
+    }
+  });
+  return map;
+});
 
 const formatDate = (dateStr: string): string => {
   const date = new Date(dateStr);
@@ -361,6 +584,106 @@ const formatDuration = (hours: number): string => {
   const fullHours = Math.floor(hours);
   const minutes = Math.round((hours - fullHours) * 60);
   return minutes > 0 ? `${fullHours}h ${minutes}m` : `${fullHours} hours`;
+};
+
+const formatCommentDate = (dateStr: string): string => {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
+
+const isCommentOwner = (comment: FieldActivityComment) => {
+  return comment.user_id === currentUser.value?.id;
+};
+
+const startReply = (commentId: number) => {
+  replyToCommentId.value = commentId;
+  replyContent.value = "";
+};
+
+const cancelReply = () => {
+  replyToCommentId.value = null;
+  replyContent.value = "";
+};
+
+const startEditComment = (comment: FieldActivityComment) => {
+  editingCommentId.value = comment.id;
+  editingContent.value = comment.content;
+};
+
+const cancelEditComment = () => {
+  editingCommentId.value = null;
+  editingContent.value = "";
+};
+
+const handleAddComment = () => {
+  if (!activity.value) return;
+  const content = newComment.value.trim();
+  if (!content) return;
+
+  createComment(
+    {
+      activityId: activity.value.id,
+      data: { content },
+    },
+    {
+      onSuccess: () => {
+        newComment.value = "";
+      },
+      onError: (error: any) => {
+        console.error("Failed to add comment:", error);
+        alert(error.response?.data?.detail || "Failed to add comment. Please try again.");
+      },
+    },
+  );
+};
+
+const handleReply = (commentId: number) => {
+  if (!activity.value) return;
+  const content = replyContent.value.trim();
+  if (!content) return;
+
+  createComment(
+    {
+      activityId: activity.value.id,
+      data: { content, parent_comment_id: commentId },
+    },
+    {
+      onSuccess: () => {
+        cancelReply();
+      },
+      onError: (error: any) => {
+        console.error("Failed to reply:", error);
+        alert(error.response?.data?.detail || "Failed to reply. Please try again.");
+      },
+    },
+  );
+};
+
+const saveEditComment = (commentId: number) => {
+  if (!activity.value) return;
+  const content = editingContent.value.trim();
+  if (!content) return;
+
+  updateComment(
+    {
+      commentId,
+      activityId: activity.value.id,
+      data: { content },
+    },
+    {
+      onSuccess: () => {
+        cancelEditComment();
+      },
+      onError: (error: any) => {
+        console.error("Failed to update comment:", error);
+        alert(error.response?.data?.detail || "Failed to update comment. Please try again.");
+      },
+    },
+  );
 };
 
 const handleActivityUpdate = async (
