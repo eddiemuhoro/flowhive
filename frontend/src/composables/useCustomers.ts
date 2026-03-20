@@ -12,3 +12,14 @@ export function useCompanies() {
     staleTime: 10 * 60 * 1000, // 10 minutes cache
   })
 }
+
+/**
+ * Query hook for fetching licences with automatic caching
+ */
+export function useLicences() {
+  return useQuery({
+    queryKey: ['licences'],
+    queryFn: () => customerService.getLicences(),
+    staleTime: 2 * 60 * 1000, // 2 minutes cache
+  })
+}

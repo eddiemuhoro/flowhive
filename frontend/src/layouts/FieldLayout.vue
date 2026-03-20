@@ -472,6 +472,11 @@ const navItems = computed(() => {
       icon: CodeIcon,
     },
     {
+      path: "/field/customer-licences",
+      label: "Customer Licences",
+      icon: DashboardIcon,
+    },
+    {
       path: "/field/minutes",
       label: "Minutes",
       icon: ActivityIcon,

@@ -25,6 +25,17 @@ export interface Customer {
   address: string;
 }
 
+// Customer licence records (from internal API)
+export interface Licence {
+  id: number;
+  customer_id: string;
+  customer_name: string;
+  licence_number: string;
+  issued_on: string;
+  expires_on: string;
+  notes: string | null;
+}
+
 // User basic info for creator/updater fields
 export interface UserBasicInfo {
   id: number;
