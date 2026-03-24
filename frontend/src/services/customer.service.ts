@@ -1,5 +1,5 @@
 import { apiClient } from "./api";
-import type { Customer, Licence } from "@/types/field";
+import type { CompanyAnalyticsCustomer, Customer, Licence } from "@/types/field";
 
 export const customerService = {
   /**
@@ -7,6 +7,14 @@ export const customerService = {
    */
   async getCompanies(): Promise<Customer[]> {
     const response = await apiClient.get<Customer[]>("/customers/companies");
+    return response.data;
+  },
+
+  /**
+   * Get full company records for licence analytics
+   */
+  async getAllCompanies(): Promise<CompanyAnalyticsCustomer[]> {
+    const response = await apiClient.get<CompanyAnalyticsCustomer[]>("/customers/all-companies");
     return response.data;
   },
 

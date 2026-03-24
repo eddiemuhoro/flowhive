@@ -14,6 +14,17 @@ export function useCompanies() {
 }
 
 /**
+ * Query hook for fetching full company records used for licence analytics
+ */
+export function useAllCompanies() {
+  return useQuery({
+    queryKey: ['all-companies'],
+    queryFn: () => customerService.getAllCompanies(),
+    staleTime: 5 * 60 * 1000, // 5 minutes cache
+  })
+}
+
+/**
  * Query hook for fetching licences with automatic caching
  */
 export function useLicences() {

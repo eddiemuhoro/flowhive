@@ -25,6 +25,32 @@ export interface Customer {
   address: string;
 }
 
+// Full company payload used for licence analytics dashboard
+export interface CompanyAnalyticsCustomer {
+  id: number | string;
+  clientid?: number | string | null;
+  name?: string | null;
+  address?: string | null;
+  phone?: string | null;
+  email?: string | null;
+  pinno?: string | null;
+  paybill?: string | null;
+  contact?: string | null;
+  systemdate?: string | null; // YYYY-MM-DD
+  countryid?: number | string | null;
+  regionid?: number | string | null;
+  town?: string | null;
+  rep?: string | null;
+  licensekey?: string | null;
+  expiry?: string | null; // YYYY-MM-DD
+  clients?: number | string | null;
+  category?: string | null;
+  server_id?: number | string | null;
+  categoryid?: number | string | null;
+  sectorid?: number | string | null;
+  hq_id?: number | string | null;
+}
+
 // Customer licence records (from internal API)
 export interface Licence {
   id: number;
