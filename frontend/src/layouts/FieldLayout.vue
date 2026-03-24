@@ -454,6 +454,25 @@ const CodeIcon = () =>
     ],
   );
 
+const LicenceIcon = () =>
+  h(
+    "svg",
+    {
+      class: "h-5 w-5",
+      fill: "none",
+      stroke: "currentColor",
+      viewBox: "0 0 24 24",
+    },
+    [
+      h("path", {
+        "stroke-linecap": "round",
+        "stroke-linejoin": "round",
+        "stroke-width": "2",
+        d: "M9 12h6m-6 3h6m2 6l-2-1-2 1-2-1-2 1-2-1-2 1V5a2 2 0 012-2h10a2 2 0 012 2v16z",
+      }),
+    ],
+  );
+
 const navItems = computed(() => {
   const items = [
     {
@@ -487,7 +506,7 @@ const navItems = computed(() => {
     items.splice(4, 0, {
       path: "/field/customer-licences",
       label: "Customer Licences",
-      icon: DashboardIcon,
+      icon: LicenceIcon,
     });
   }
 
@@ -526,7 +545,7 @@ const mobileNavItems = computed(() => {
     items.push({
       path: "/field/customer-licences",
       label: "Licences",
-      icon: DashboardIcon,
+      icon: LicenceIcon,
     });
   }
 
