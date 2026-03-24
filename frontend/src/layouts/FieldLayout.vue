@@ -341,6 +341,11 @@ const canManage = computed(() => {
   return role === "MANAGER" || role === "EXECUTIVE";
 });
 
+const isExecutive = computed(() => {
+  const role = user.value?.role?.toUpperCase();
+  return role === "EXECUTIVE";
+});
+
 const userInitials = computed(() => {
   if (user.value?.full_name) {
     return user.value.full_name
@@ -472,16 +477,19 @@ const navItems = computed(() => {
       icon: CodeIcon,
     },
     {
-      path: "/field/customer-licences",
-      label: "Customer Licences",
-      icon: DashboardIcon,
-    },
-    {
       path: "/field/minutes",
       label: "Minutes",
       icon: ActivityIcon,
     },
   ];
+
+  if (isExecutive.value) {
+    items.splice(4, 0, {
+      path: "/field/customer-licences",
+      label: "Customer Licences",
+      icon: DashboardIcon,
+    });
+  }
 
   if (canManage.value) {
     items.push({

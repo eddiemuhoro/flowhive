@@ -70,6 +70,7 @@ const router = createRouter({
           path: "customer-licences",
           name: "field-customer-licences",
           component: () => import("@/views/CustomersLicences.vue"),
+          meta: { roles: ["EXECUTIVE"] },
         },
         {
           path: "activities/:id",
@@ -171,7 +172,9 @@ router.beforeEach(
       }
     } else if (
       to.meta.roles &&
-      !to.meta.roles.includes(authStore.user?.role || "")
+      !to.meta.roles
+        .map((role) => String(role).toUpperCase())
+        .includes(String(authStore.user?.role || "").toUpperCase())
     ) {
       next({ name: "dashboard" });
     } else if (to.meta.workspaceType) {
