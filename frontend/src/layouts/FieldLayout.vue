@@ -520,12 +520,15 @@ const mobileNavItems = computed(() => {
       label: "Reports",
       icon: ReportsIcon,
     },
-    {
-      path: "/field/dev-tasks",
-      label: "Dev Tasks",
-      icon: CodeIcon,
-    },
   ];
+
+  if (isExecutive.value) {
+    items.push({
+      path: "/field/customer-licences",
+      label: "Licences",
+      icon: DashboardIcon,
+    });
+  }
 
   if (canManage.value) {
     items.push({
