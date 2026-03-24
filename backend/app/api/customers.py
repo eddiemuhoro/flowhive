@@ -10,6 +10,7 @@ from app.schemas.customers import (
     LicenceResponse,
     LicenceUpdate
 )
+from app.config import settings
 from app.utils.auth import get_current_active_user
 
 router = APIRouter()
@@ -25,7 +26,7 @@ async def get_companies(
     try:
         async with httpx.AsyncClient(timeout=30.0) as client:
             response = await client.get(
-                "https://company.sajsoft.co.ke/?action=getareportscompanies"
+                settings.SAJSOFT_COMPANIES_URL
             )
             response.raise_for_status()
 
@@ -41,6 +42,35 @@ async def get_companies(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error fetching companies: {str(e)}"
+        )
+
+
+@router.get("/all-companies", response_model=List[Dict])
+async def get_all_companies(
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get all companies from external SAJSoft API.
+    """
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                settings.SAJSOFT_ALL_COMPANIES_URL
+            )
+            response.raise_for_status()
+
+            companies = response.json()
+            return companies
+
+    except httpx.HTTPError as e:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Failed to fetch all companies from external API: {str(e)}"
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error fetching all companies: {str(e)}"
         )
 
 

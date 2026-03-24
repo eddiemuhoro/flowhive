@@ -39,12 +39,16 @@ class Settings(BaseSettings):
     WEEKLY_REPORT_HOUR: int = 17  # 5 PM
     WEEKLY_REPORT_RECIPIENTS: str = ""  # Comma-separated emails
     WEEKLY_REPORT_TIMEZONE: str = "Africa/Nairobi"
-    
+
     # Github API (for commits integration)
     GITHUB_API_URL: str = ""
     GITHUB_REPO_OWNER: str = ""
     GITHUB_REPO_NAME: str = ""
     GITHUB_API_TOKEN: str = ""  # Personal Access Token with repo access
+
+    # External SAJSoft API endpoints
+    SAJSOFT_COMPANIES_URL: str = ""
+    SAJSOFT_ALL_COMPANIES_URL: str = ""
 
     @property
     def weekly_report_recipients_list(self) -> List[str]:
