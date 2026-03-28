@@ -341,10 +341,10 @@ const canManage = computed(() => {
   return role === "MANAGER" || role === "EXECUTIVE";
 });
 
-const isExecutive = computed(() => {
-  const role = user.value?.role?.toUpperCase();
-  return role === "EXECUTIVE";
-});
+// const isExecutive = computed(() => {
+//   const role = user.value?.role?.toUpperCase();
+//   return role === "EXECUTIVE";
+// });
 
 const userInitials = computed(() => {
   if (user.value?.full_name) {
