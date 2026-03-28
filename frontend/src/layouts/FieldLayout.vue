@@ -502,7 +502,7 @@ const navItems = computed(() => {
     },
   ];
 
-  if (isExecutive.value) {
+  if (canManage.value) {
     items.splice(4, 0, {
       path: "/field/customer-licences",
       label: "Customer Licences",
@@ -541,7 +541,7 @@ const mobileNavItems = computed(() => {
     },
   ];
 
-  if (isExecutive.value) {
+  if (canManage.value) {
     items.push({
       path: "/field/customer-licences",
       label: "Licences",

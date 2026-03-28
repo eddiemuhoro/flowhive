@@ -70,7 +70,7 @@ const router = createRouter({
           path: "customer-licences",
           name: "field-customer-licences",
           component: () => import("@/views/CustomersLicences.vue"),
-          meta: { roles: ["EXECUTIVE"] },
+          meta: { roles: ["manager", "executive"] },
         },
         {
           path: "activities/:id",
