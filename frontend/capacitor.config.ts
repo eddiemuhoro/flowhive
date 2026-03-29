@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.flowhive.app',
-  appName: 'FlowHive',
+  appName: 'FlowHive App',
   webDir: 'dist',
   server: {
     androidScheme: 'https',
