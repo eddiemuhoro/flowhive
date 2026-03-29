@@ -205,6 +205,7 @@ interface Props {
   activities: FieldActivity[];
   workspaceId: number;
   workspaceMembers?: WorkspaceMember[];
+  initialFilters?: FieldActivityFilters;
   loading?: boolean;
   hasMore?: boolean;
 }
@@ -219,6 +220,7 @@ interface Emits {
 
 const props = withDefaults(defineProps<Props>(), {
   workspaceMembers: () => [],
+  initialFilters: () => ({}),
   loading: false,
   hasMore: false,
 });
@@ -232,6 +234,7 @@ const filters = ref<FieldActivityFilters>({
   task_category_id: undefined,
   customer_name: undefined,
   search: undefined,
+  ...props.initialFilters,
 });
 
 const hasActiveFilters = computed(() => {

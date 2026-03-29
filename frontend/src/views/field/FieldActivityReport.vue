@@ -433,7 +433,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref, computed } from "vue";
 import { useRouter, useRoute } from "vue-router";
 import { useWorkspaceStore } from "@/stores/workspace";
 import { useFieldActivities } from "@/composables/useFieldActivities";
@@ -449,10 +449,31 @@ const workspaceStore = useWorkspaceStore();
 const currentWorkspace = computed(() => workspaceStore.currentWorkspace);
 const currentWorkspaceId = computed(() => currentWorkspace.value?.id || 0);
 
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+const getPast10DaysRange = () => {
+  const today = new Date();
+  const tenDaysAgo = new Date(today);
+  tenDaysAgo.setDate(tenDaysAgo.getDate() - 7);
+
+  return {
+    from: formatDate(tenDaysAgo),
+    to: formatDate(today),
+  };
+};
+
+const defaultDateRange = getPast10DaysRange();
+
 // Filter state
-const selectedStaffId = ref<number | undefined>(undefined);
-const dateFrom = ref<string | undefined>(undefined);
-const dateTo = ref<string | undefined>(undefined);
+const selectedStaffId = ref<number | undefined>(
+  route.query.staff ? Number(route.query.staff) : undefined,
+);
+const dateFrom = ref<string | undefined>(
+  route.query.from ? String(route.query.from) : defaultDateRange.from,
+);
+const dateTo = ref<string | undefined>(
+  route.query.to ? String(route.query.to) : defaultDateRange.to,
+);
 
 // Email modal state
 const showEmailModal = ref(false);
@@ -621,19 +642,6 @@ const updateUrlParams = () => {
   });
 };
 
-// Load filters from URL on mount
-const loadFiltersFromUrl = () => {
-  if (route.query.staff) {
-    selectedStaffId.value = Number(route.query.staff);
-  }
-  if (route.query.from) {
-    dateFrom.value = String(route.query.from);
-  }
-  if (route.query.to) {
-    dateTo.value = String(route.query.to);
-  }
-};
-
 // Print handler
 const handlePrint = () => {
   window.print();
@@ -697,9 +705,6 @@ const sendEmailReport = async () => {
   }
 };
 
-onMounted(() => {
-  loadFiltersFromUrl();
-});
 </script>
 
 <style scoped>

@@ -63,6 +63,7 @@
         :activities="activities"
         :workspace-id="currentWorkspaceId"
         :workspace-members="currentWorkspace?.members || []"
+        :initial-filters="filters"
         :loading="isLoading"
         @view="viewActivity"
         @edit="editActivity"
@@ -150,9 +151,22 @@ const workspaceStore = useWorkspaceStore();
 const currentWorkspace = computed(() => workspaceStore.currentWorkspace);
 const currentWorkspaceId = computed(() => currentWorkspace.value?.id || 0);
 
+const formatDate = (date: Date) => date.toISOString().split("T")[0];
+
+const getPast10DaysFilters = (): FieldActivityFilters => {
+  const today = new Date();
+  const sevenDaysAgo = new Date(today);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+  return {
+    date_from: formatDate(sevenDaysAgo),
+    date_to: formatDate(today),
+  };
+};
+
 const showActivityForm = ref(false);
 const editingActivity = ref<any>(null);
-const filters = ref<FieldActivityFilters>({});
+const filters = ref<FieldActivityFilters>(getPast10DaysFilters());
 
 // TanStack Query hooks
 const { data: activitiesData, isLoading } = useFieldActivities(
