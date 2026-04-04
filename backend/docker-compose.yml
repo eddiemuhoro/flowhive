@@ -1,0 +1,41 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: flowhive_postgres
+    restart: always
+    environment:
+      POSTGRES_DB: flowhive_pgdb
+      POSTGRES_USER: flowhive_pguser
+      POSTGRES_PASSWORD: flowhive_pgpass
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - flowhive_network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: flowhive_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: eddiemuhoro@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - flowhive_network
+
+volumes:
+  postgres_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  flowhive_network:
+    driver: bridge
